@@ -8,6 +8,9 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 Install iterm2
 brew install --cask iterm2
 
+Install fd
+brew install fd
+
 Install ripgrep
 brew install ripgrep
 
