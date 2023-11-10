@@ -14,6 +14,9 @@ brew install fd
 Install ripgrep
 brew install ripgrep
 
+Install sqllite
+brew install sqllite
+
 Install git
 brew install git
 
