@@ -18,14 +18,12 @@ return {
     opts = function(_, opts)
       opts.servers.lua_ls = {
         Lua = {
-          -- make the language server recognize "vim" global
           diagnostics = {
             globals = { "vim" },
           },
           workspace = {
             checkThirdParty = false,
             workspace = {
-              -- make language server aware of runtime files
               library = {
                 [vim.fn.expand("$VIMRUNTIME/lua")] = true,
                 [vim.fn.stdpath("config") .. "/lua"] = true,
