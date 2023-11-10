@@ -14,7 +14,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup(
   {
     { import = "zach.plugins" },
-    { import = "zach.plugins.lsp" }
+    { import = "zach.plugins.lang" }
   },
   {
     install = {
