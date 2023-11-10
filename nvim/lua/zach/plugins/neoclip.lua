@@ -10,13 +10,8 @@ return {
         enable_persistent_history = true
       })
 
+      require("telescope").load_extension("neoclip")
       vim.keymap.set("n", "<leader>fc", "<cmd>Telescope neoclip<cr>", { desc = "Find in clipboard history" })
     end,
-  },
-  {
-    'nvim-telescope/telescope.nvim',
-    config = function()
-      require("telescope").load_extension("neoclip")
-    end
   }
 }
