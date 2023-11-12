@@ -11,6 +11,15 @@ brew install --cask iterm2
 Install fd
 brew install fd
 
+Install tmux
+brew install tmux
+
+Install tpm
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+
+Install fzf
+brew install fzf
+
 Install ripgrep
 brew install ripgrep
 
