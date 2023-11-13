@@ -14,6 +14,9 @@ brew install fd
 Install tmux
 brew install tmux
 
+Install gh
+brew install gh
+
 Install tpm
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
