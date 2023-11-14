@@ -23,6 +23,9 @@ brew install tmux
 #Syslink tmux
 ln -s ~/zenv/.tmux.conf ~/
 
+#Install lazygit
+brew install lazygit
+
 #Install gh
 brew install gh
 
