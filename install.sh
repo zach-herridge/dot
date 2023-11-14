@@ -8,7 +8,7 @@ brew install git
 git clone https://github.com/zach-herridge/.dotfiles ~/zenv
 
 #Add homebrew to path (replace username)
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/[username]/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/$USER/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 #Install iterm2
