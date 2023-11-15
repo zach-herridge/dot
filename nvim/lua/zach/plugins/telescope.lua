@@ -11,7 +11,7 @@ return {
 
     telescope.setup({
       defaults = {
-        path_display = { "truncate " },
+        path_display = { truncate = 3 },
         file_ignore_patterns = {
           "^build",
           "^.bemol",
