@@ -19,6 +19,7 @@ return {
     require("luasnip.loaders.from_vscode").lazy_load()
     luasnip.config.setup({})
 
+    local log = require("plenary.log")
     cmp.setup({
       completion = {
         completeopt = "menu,menuone,preview,noselect",
@@ -64,9 +65,16 @@ return {
         format = lspkind.cmp_format({
           mode = 'symbol',
           maxwidth = 50,
-          ellipsis_char = '',
+          ellipsis_char = '..',
           before = function(entry, vim_item)
-            vim_item.menu = entry:get_completion_item().detail
+            pcall(function()
+              local item = entry:get_completion_item()
+              log.debug(item)
+              if item.detail then
+                vim_item.menu = item.detail
+              end
+            end)
+
             return vim_item
           end
         })
