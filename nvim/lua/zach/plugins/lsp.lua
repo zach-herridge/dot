@@ -17,8 +17,8 @@ local function bemol()
 end
 
 local function setup_on_attach(on_attach)
- vim.api.nvim_create_autocmd("LspAttach", {
-    callback = function (args)
+  vim.api.nvim_create_autocmd("LspAttach", {
+    callback = function(args)
       local buffer = args.buf
       local client = vim.lsp.get_client_by_id(args.data.client_id)
       on_attach(client, buffer)
@@ -50,6 +50,7 @@ return {
       { "antosha417/nvim-lsp-file-operations", config = true },
     },
     opts = {
+      inlay_hints = { enabled = true },
       servers = {},
       setup = {},
     },
@@ -64,7 +65,7 @@ return {
         opts.capabilities or {}
       )
 
-      local attach_keymaps = function(_, bufnr)
+      local attach_keymaps = function(client, bufnr)
         local nmap = function(keys, func, desc)
           if desc then
             desc = "LSP: " .. desc
@@ -95,6 +96,10 @@ return {
         vim.api.nvim_buf_create_user_command(bufnr, "Format", function(_)
           vim.lsp.buf.format()
         end, { desc = "Format current buffer with LSP" })
+
+        if client.server_capabilities.inlayHintProvider then
+          vim.lsp.inlay_hint(bufnr, true)
+        end
       end
       setup_on_attach(attach_keymaps)
 

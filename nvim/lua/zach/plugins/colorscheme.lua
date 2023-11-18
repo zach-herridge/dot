@@ -1,8 +1,16 @@
 return {
-  "folke/tokyonight.nvim",
-  lazy = false,
+  "catppuccin/nvim",
+  name = "catppuccin",
   priority = 1000,
   config = function()
-    vim.cmd [[colorscheme tokyonight-moon]]
-  end,
+    require("catppuccin").setup({
+      flavour = "mocha",
+      integrations = {
+        neotree = true,
+        gitgutter = true,
+        leap = true
+      }
+    })
+    vim.cmd.colorscheme "catppuccin"
+  end
 }
