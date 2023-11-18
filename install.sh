@@ -4,6 +4,9 @@
 #Install git
 brew install git
 
+#Install zoxide
+brew install zoxide
+
 #Clone this repo
 git clone https://github.com/zach-herridge/.dotfiles ~/zenv
 
@@ -74,4 +77,6 @@ ln -s ~/zenv/nvim ~/.config
 
 #Install tmux plugins
 #enter tmux and run `ctrl + a I`
+
+#ITerm2 -> Preferences -> Profiles -> keys -> General -> Choose "left Option key " 
 

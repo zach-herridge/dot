@@ -23,7 +23,7 @@ return {
       textobjects = {
         select = {
           enable = true,
-          lookahead = true, 
+          lookahead = true,
           keymaps = {
             ["aa"] = "@parameter.outer",
             ["ia"] = "@parameter.inner",

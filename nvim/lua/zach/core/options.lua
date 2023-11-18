@@ -1,11 +1,21 @@
 local opt = vim.opt
 
+-- disable cmd line to make room for lualine
+vim.o.cmdheight = 0
+
 -- line numbers
 opt.relativenumber = true
 opt.number = true
 
 -- pad cursor
-vim.opt.scrolloff = 15
+opt.scrolloff = 9
+opt.sidescrolloff = 9
+
+opt.smoothscroll = true
+
+-- undo
+opt.undofile = true
+opt.undolevels = 10000
 
 -- tabs & indentation
 opt.tabstop = 2
@@ -41,4 +51,3 @@ opt.splitbelow = true
 -- include in word
 opt.iskeyword:append("_")
 opt.iskeyword:append("-")
-
