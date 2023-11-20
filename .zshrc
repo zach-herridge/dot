@@ -16,6 +16,9 @@ alias vim="nvim"
 alias bb="brazil-build"
 alias gg="./gradlew"
 alias cd="z"
+alias gt="lazygit"
+alias cat="bat"
+alias zh="cat ~/zenv/help/tips.md"
 
 eval "$(zoxide init zsh)"
 

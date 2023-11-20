@@ -24,4 +24,4 @@ brew list
 ### fd
 
 ### image editor
-brew install --cask krita
+brew install gimp 

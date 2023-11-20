@@ -20,6 +20,11 @@ brew install --cask iterm2
 #Install fd
 brew install fd
 
+#Install gimp
+brew install gimp
+
+brew install bat
+
 #Install tmux
 brew install tmux
 
