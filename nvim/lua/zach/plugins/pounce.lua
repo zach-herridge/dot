@@ -16,14 +16,14 @@ return {
 
     local default_hl_config_bold = {
       bold = true,
-      fg = "#cdd6f4",
-      bg = "#3e5767",
+      fg = "#1e1e2e",
+      bg = "#809dff",
     }
 
     local default_hl_config_best = {
       bold = true,
-      fg = "#cdd6f4",
-      bg = "#287bb0",
+      fg = "#1e1e2e",
+      bg = "#a6e3a1",
     }
 
     local default_hl = {
@@ -40,6 +40,7 @@ return {
       PounceCursorAcceptBest = default_hl_config_best,
     }
     for hl, spec in pairs(default_hl) do
+
       vim.api.nvim_set_hl(0, hl, spec)
     end
 
