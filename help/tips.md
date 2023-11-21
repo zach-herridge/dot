@@ -18,10 +18,8 @@ leader $ - rename session
 cc - delete line enter insert mode with indent
 :LINE_NUMBER - go to line number
 
-### brew
+### misc
 brew list
 
-### fd
-
-### image editor
-brew install gimp 
+### software
+image editor - gimp

@@ -18,6 +18,7 @@ alias gg="./gradlew"
 alias cd="z"
 alias gt="lazygit"
 alias cat="bat"
+alias cc="clear"
 alias zh="cat ~/zenv/help/tips.md"
 
 eval "$(zoxide init zsh)"
