@@ -40,7 +40,6 @@ return {
       PounceCursorAcceptBest = default_hl_config_best,
     }
     for hl, spec in pairs(default_hl) do
-
       vim.api.nvim_set_hl(0, hl, spec)
     end
 
