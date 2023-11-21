@@ -72,6 +72,8 @@ brew install --HEAD neovim
 #Syslink nvm
 ln -sf ~/dot/nvim ~/.config
 
+echo "Install complete! :)"
+
 #Manual steps
 
 #Set item color to the theme in this folder
