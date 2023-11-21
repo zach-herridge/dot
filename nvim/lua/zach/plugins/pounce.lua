@@ -3,7 +3,7 @@ return {
   config = function()
     local pounce = require("pounce")
     pounce.setup {
-      accept_keys = "JFKDLSAHGNUVRBYTMICEOXWPQZ",
+      accept_keys = ">JFKDLSAHGNUVRBYTMICEOXWPQZ",
       accept_best_key = "<enter>",
       multi_window = true,
       debug = false,
@@ -39,7 +39,6 @@ return {
       PounceCursorAccept = default_hl_config_bold,
       PounceCursorAcceptBest = default_hl_config_best,
     }
-
     for hl, spec in pairs(default_hl) do
       vim.api.nvim_set_hl(0, hl, spec)
     end
@@ -52,7 +51,3 @@ return {
   end
 }
 
--- Figure this out
--- highlight PounceMatch gui=bold guifg=#555555 guibg=#11dd11
--- highlight PounceGap gui=bold guifg=#555555 guibg=#00aa00
--- highlight PounceAccept gui=bold guifg=#111111 guibg=#de940b
