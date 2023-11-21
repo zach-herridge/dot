@@ -29,7 +29,7 @@ brew install bat
 brew install tmux
 
 #Syslink tmux
-ln -s ~/dot/.tmux.conf ~/
+ln -sf ~/dot/.tmux.conf ~/
 
 #Install lazygit
 brew install lazygit
@@ -61,16 +61,16 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
 #Syslink powershell theme
-ln -s ~/dot/.p10k.zsh ~/
+ln -sf ~/dot/.p10k.zsh ~/
 
 #Syslink .zshrc
-ln -s ~/dot/.zshrc ~/
+ln -sf ~/dot/.zshrc ~/
 
 #Install neovim (install the latest version to get inlays)
 brew install --HEAD neovim
 
 #Syslink nvm
-ln -s ~/dot/nvim ~/.config
+ln -sf ~/dot/nvim ~/.config
 
 #Manual steps
 
