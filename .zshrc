@@ -20,6 +20,9 @@ alias gt="lazygit"
 alias cat="bat"
 alias cc="clear"
 alias zh="cat ~/zenv/help/tips.md"
+alias lt="exa -T -L 3 --git-ignore"
+alias ls="exa -a -l --no-permissions --no-user -h -s extension"
+alias lss="exa -a -l --no-permissions --no-user -h -s size -r"
 
 eval "$(zoxide init zsh)"
 

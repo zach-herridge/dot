@@ -1,5 +1,5 @@
 return {
-  "zach-herride/pounce.nvim",
+  "zach-herridge/pounce",
   config = function()
     local pounce = require("pounce")
     pounce.setup {

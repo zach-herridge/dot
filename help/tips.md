@@ -17,6 +17,7 @@ leader $ - rename session
 ### vim
 cc - delete line enter insert mode with indent
 :LINE_NUMBER - go to line number
+:%s/foo/bar/g - replace foo with bar
 
 ### misc
 brew list
