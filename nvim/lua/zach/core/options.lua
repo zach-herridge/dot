@@ -1,5 +1,10 @@
 local opt = vim.opt
 
+
+vim.opt.spelllang = 'en_us'
+vim.opt.spell = true
+
+
 -- disable cmd line to make room for lualine
 vim.o.cmdheight = 0
 

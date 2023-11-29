@@ -12,13 +12,6 @@ return {
     opts = {
       servers = {
         kotlin_language_server = {
-          kotlin = {
-            hints = {
-              typeHints = true,
-              parameterHints = true,
-              chainedHints = true,
-            },
-          },
         },
       },
     },

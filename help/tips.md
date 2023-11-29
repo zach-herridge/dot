@@ -19,6 +19,10 @@ cc - delete line enter insert mode with indent
 :LINE_NUMBER - go to line number
 :%s/foo/bar/g - replace foo with bar
 
+ysiw" - ys + inner word = surrounding the current word with "
+cs'" - change surrounding  '' to ""
+csth1 - change surrounding tag to h1 
+
 ### misc
 brew list
 

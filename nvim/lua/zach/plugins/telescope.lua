@@ -9,9 +9,20 @@ return {
   config = function()
     local telescope = require("telescope")
 
+    local actions = require "telescope.actions"
     telescope.setup({
       defaults = {
         path_display = { truncate = 3 },
+        mappings = {
+          i = {
+            ["<S-Tab>"] = actions.move_selection_next,
+            ["<Tab>"] = actions.move_selection_previous,
+          },
+          n = {
+            ["<S-Tab>"] = actions.move_selection_next,
+            ["<Tab>"] = actions.move_selection_previous,
+          }
+        },
         file_ignore_patterns = {
           "^build",
           "^.bemol",
@@ -33,5 +44,8 @@ return {
     keymap.set("n", "<leader>fR", "<cmd>Telescope resume<cr>", { desc = "Resume last search" })
     keymap.set("n", "<leader>fX", "<cmd>Telescope diagnostics<cr>", { desc = "Find diagnostics" })
     keymap.set("n", "<leader>ft", "<cmd>Telescope treesitter<cr>", { desc = "Find treesitter" })
+    keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Find help docs" })
+    keymap.set("n", "<leader>cs", "<cmd>Telescope spell_suggest<cr>", { desc = "Get spelling help" })
+    keymap.set("n", "<leader>fg", "<cmd>Telescope git_status<cr>", { desc = "Go through git status" })
   end,
 }
