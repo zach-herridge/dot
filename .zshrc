@@ -12,17 +12,22 @@ source $ZSH/oh-my-zsh.sh
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+function ghpr() {
+  GH_FORCE_TTY=100% gh pr list | fzf --ansi --preview 'GH_FORCE_TTY=100% gh pr view {1}' --preview-window down --header-lines 3 | awk '{print $1}' | xargs gh pr checkout
+}
+
 alias vim="nvim"
 alias bb="brazil-build"
 alias gg="./gradlew"
-alias cd="z"
 alias gt="lazygit"
+alias cd="z"
+alias ci="zi"
 alias cat="bat"
 alias cc="clear"
-alias zh="cat ~/zenv/help/tips.md"
-alias lt="exa -T -L 3 --git-ignore"
-alias ls="exa -a -l --no-permissions --no-user -h -s extension"
-alias lss="exa -a -l --no-permissions --no-user -h -s size -r"
+alias zh="cat ~/dot/help/tips.md"
+alias lt="exa -T -L 3 --icons --git-ignore"
+alias ls="exa -a -l --no-permissions --icons --no-user -h -s extension"
+alias lss="exa -a -l --no-permissions --icons --no-user -h -s size -r"
 
 eval "$(zoxide init zsh)"
 
