@@ -15,7 +15,7 @@ return {
       local function toggleLazyGit()
         lazygit:toggle()
       end
-      vim.keymap.set("n", "<leader>gt", toggleLazyGit, { noremap = true, silent = true })
+      vim.keymap.set("n", "<leader>gh", toggleLazyGit, { desc = "Open lazygit" })
     end,
   }
 }
