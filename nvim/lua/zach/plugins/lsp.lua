@@ -81,9 +81,9 @@ return {
         nmap("<leader>fE", require("telescope.builtin").lsp_dynamic_workspace_symbols, "Find lsp document symbols global")
 
         nmap("K", vim.lsp.buf.hover, "Hover Documentation")
-        nmap("<C-k>", vim.lsp.buf.signature_help, "Signature documentation")
-        vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, { desc = "Signature documentation" })
-
+        vim.keymap.set({ "i", "n" }, "<C-k>", vim.lsp.buf.signature_help, { desc = "Signature documentation" })
+        vim.keymap.set({ "i", "n" }, "<C-x>", function() vim.diagnostic.open_float({ scope = "line" }) end,
+          { desc = "Signature documentation" })
         nmap("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add dir to workspace")
         nmap("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove dir from workspace")
         nmap("<leader>lwl", function()

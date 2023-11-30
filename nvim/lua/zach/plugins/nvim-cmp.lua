@@ -51,8 +51,8 @@ return {
         end, { "i", "s" }),
       }),
       sources = cmp.config.sources({
-        { name = "nvim_lua" },
         { name = "nvim_lsp" },
+        { name = "nvim_lua" },
         { name = "buffer",  keyword_length = 2 },
         { name = "path" },
       }),
@@ -64,7 +64,6 @@ return {
           before = function(entry, vim_item)
             pcall(function()
               local item = entry:get_completion_item()
-              log.debug(item)
               if item.detail then
                 vim_item.menu = item.detail
               end
