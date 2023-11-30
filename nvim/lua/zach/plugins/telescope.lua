@@ -25,10 +25,15 @@ return {
         },
         file_ignore_patterns = {
           "^build",
-          "^.bemol",
+          ".bemol",
           "^repo",
           "^env",
           "node_modules",
+        },
+      },
+      pickers = {
+        find_files = {
+          find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
         },
       },
     })
@@ -36,16 +41,17 @@ return {
     telescope.load_extension("fzf")
 
     local keymap = vim.keymap
-
-    keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
-    keymap.set("n", "<leader>fr", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
-    keymap.set("n", "<leader>fS", "<cmd>Telescope live_grep<cr>", { desc = "Find string in cwd" })
-    keymap.set("n", "<leader>fs", "<cmd>Telescope current_buffer_fuzzy_find<cr>", { desc = "Find string in current file" })
-    keymap.set("n", "<leader>fR", "<cmd>Telescope resume<cr>", { desc = "Resume last search" })
-    keymap.set("n", "<leader>fX", "<cmd>Telescope diagnostics<cr>", { desc = "Find diagnostics" })
-    keymap.set("n", "<leader>ft", "<cmd>Telescope treesitter<cr>", { desc = "Find treesitter" })
-    keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Find help docs" })
-    keymap.set("n", "<leader>cs", "<cmd>Telescope spell_suggest<cr>", { desc = "Get spelling help" })
-    keymap.set("n", "<leader>fg", "<cmd>Telescope git_status<cr>", { desc = "Go through git status" })
+    local builtin = require('telescope.builtin')
+    keymap.set('n', '<leader>fd', function() builtin.find_files({ cwd = vim.fn.expand('%:p:h') }) end,
+      { desc = "Find in file dir" })
+    keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Fuzzy find files in cwd" })
+    keymap.set("n", "<leader>fr", builtin.oldfiles, { desc = "Fuzzy find recent files" })
+    keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Find string in cwd" })
+    keymap.set("n", "<leader>fs", builtin.current_buffer_fuzzy_find, { desc = "Find string in current file" })
+    keymap.set("n", "<leader>fR", builtin.resume, { desc = "Resume last search" })
+    keymap.set("n", "<leader>fX", builtin.diagnostics, { desc = "Find diagnostics" })
+    keymap.set("n", "<leader>ft", builtin.treesitter, { desc = "Find treesitter" })
+    keymap.set("n", "<leader>fH", builtin.help_tags, { desc = "Find help docs" })
+    keymap.set("n", "<leader>cs", builtin.spell_suggest, { desc = "Get spelling help" })
   end,
 }

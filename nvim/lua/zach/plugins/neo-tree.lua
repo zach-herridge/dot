@@ -33,6 +33,6 @@ return {
       }
     })
 
-    vim.keymap.set("n", "<leader>fd", "<cmd>Neotree reveal<cr>", { desc = "File browser" })
+    vim.keymap.set("n", "<leader>fD", "<cmd>Neotree reveal<cr>", { desc = "File browser" })
   end
 }

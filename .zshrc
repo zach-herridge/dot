@@ -17,6 +17,7 @@ function ghpr() {
 }
 
 alias vim="nvim"
+alias v="nvim"
 alias bb="brazil-build"
 alias gg="./gradlew"
 alias gt="lazygit"

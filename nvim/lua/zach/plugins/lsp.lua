@@ -55,7 +55,43 @@ return {
       setup = {},
     },
     config = function(_, opts)
-      local servers = opts.servers
+      local on_attach = function(client, bufnr)
+        if client.server_capabilities.inlayHintProvider then
+          vim.lsp.inlay_hint(bufnr, true)
+        end
+
+        local nmap = function(keys, func, desc)
+          vim.keymap.set("n", keys, func, { desc = desc })
+        end
+
+        bemol()
+
+        nmap("<leader>cr", vim.lsp.buf.rename, "Lsp rename")
+        nmap("<leader>ca", vim.lsp.buf.code_action, "Lsp code action")
+        nmap("<leader>cf", vim.lsp.buf.format, "Lsp format")
+
+        nmap("gd", vim.lsp.buf.definition, "Go to lsp definition")
+        nmap("gD", vim.lsp.buf.declaration, "Go to lsp declaration")
+
+        nmap("<leader>gr", require("telescope.builtin").lsp_references, "Go to lsp references")
+        nmap("<leader>gI", require("telescope.builtin").lsp_implementations, "Go to lsp implementations")
+        nmap("<leader>gt", vim.lsp.buf.type_definition, "Go to lsp type definition")
+
+        nmap("<leader>fe", require("telescope.builtin").lsp_document_symbols, "Find lsp document symbols")
+        nmap("<leader>fE", require("telescope.builtin").lsp_dynamic_workspace_symbols, "Find lsp document symbols global")
+
+        nmap("K", vim.lsp.buf.hover, "Hover Documentation")
+        nmap("<C-k>", vim.lsp.buf.signature_help, "Signature documentation")
+        vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, { desc = "Signature documentation" })
+
+        nmap("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add dir to workspace")
+        nmap("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove dir from workspace")
+        nmap("<leader>lwl", function()
+          vim.notify(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+        end, "List workspace dirs")
+      end
+      setup_on_attach(on_attach)
+
       local cmp_nvim_lsp = require("cmp_nvim_lsp")
       local capabilities = vim.tbl_deep_extend(
         "force",
@@ -64,46 +100,8 @@ return {
         cmp_nvim_lsp.default_capabilities(),
         opts.capabilities or {}
       )
-
-      local attach_keymaps = function(client, bufnr)
-        local nmap = function(keys, func, desc)
-          if desc then
-            desc = "LSP: " .. desc
-          end
-          vim.keymap.set("n", keys, func, { buffer = bufnr, desc = desc })
-        end
-
-        nmap("<leader>rn", vim.lsp.buf.rename, "[R]e[n]ame")
-        nmap("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction")
-
-        nmap("gd", vim.lsp.buf.definition, "[G]oto [D]efinition")
-        nmap("gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
-        nmap("gI", require("telescope.builtin").lsp_implementations, "[G]oto [I]mplementation")
-        nmap("<leader>D", vim.lsp.buf.type_definition, "Type [D]efinition")
-        nmap("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
-        nmap("<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "[W]orkspace [S]ymbols")
-
-        nmap("K", vim.lsp.buf.hover, "Hover Documentation")
-        nmap("<C-k>", vim.lsp.buf.signature_help, "Signature Documentation")
-
-        nmap("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
-        nmap("<leader>wa", vim.lsp.buf.add_workspace_folder, "[W]orkspace [A]dd Folder")
-        nmap("<leader>wr", vim.lsp.buf.remove_workspace_folder, "[W]orkspace [R]emove Folder")
-        nmap("<leader>wl", function()
-          vim.notify(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-        end, "[W]orkspace [L]ist Folders")
-
-        vim.api.nvim_buf_create_user_command(bufnr, "Format", function(_)
-          vim.lsp.buf.format()
-        end, { desc = "Format current buffer with LSP" })
-
-        if client.server_capabilities.inlayHintProvider then
-          vim.lsp.inlay_hint(bufnr, true)
-        end
-      end
-      setup_on_attach(attach_keymaps)
-
-      local function setup(server)
+      local servers = opts.servers
+      local function setup_server(server)
         local server_opts = vim.tbl_deep_extend("force", {
           capabilities = vim.deepcopy(capabilities),
         }, servers[server] or {})
@@ -115,24 +113,22 @@ return {
         require("lspconfig")[server].setup(server_opts)
       end
 
-      bemol()
 
       local mlsp = require("mason-lspconfig")
       local all_mslp_servers = vim.tbl_keys(require("mason-lspconfig.mappings.server").lspconfig_to_package)
 
       local ensure_installed = {}
-
       for server, server_opts in pairs(servers) do
         if server_opts then
           server_opts = server_opts == true and {} or server_opts
           if server_opts.mason == false or not vim.tbl_contains(all_mslp_servers, server) then
-            setup(server)
+            setup_server(server)
           else
             ensure_installed[#ensure_installed + 1] = server
           end
         end
       end
-      mlsp.setup({ ensure_installed = ensure_installed, handlers = { setup } })
+      mlsp.setup({ ensure_installed = ensure_installed, handlers = { setup_server } })
     end,
   },
 }
