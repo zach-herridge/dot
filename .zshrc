@@ -19,6 +19,7 @@ function ghpr() {
 alias vim="nvim"
 alias v="nvim"
 alias bb="brazil-build"
+alias bbb="brazil-recursive-cmd -all brazil-build --reverse"
 alias gg="./gradlew"
 alias gt="lazygit"
 alias cd="z"
