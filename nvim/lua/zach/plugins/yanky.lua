@@ -1,10 +1,13 @@
 return {
   "gbprod/yanky.nvim",
   opts = {
+    system_clipboard = {
+      sync_with_ring = true,
+    },
   },
   keys = {
-    { "<leader>fp", function() require("telescope").extensions.yank_history.yank_history({ }) end, desc = "Find yank history" },
-    { "y", "<plug>(yankyyank)", mode = { "n", "x" }, desc = "yank text" },
-    { "p", "<plug>(yankyputafter)", mode = { "n", "x" }, desc = "put yanked text after cursor" },
+    { "<leader>fp", function() require("telescope").extensions.yank_history.yank_history({}) end,  desc = "Open Yank History" },
+    { "y",          "<Plug>(YankyYank)",                                                           mode = { "n", "x" },       desc = "Yank text" },
+    { "p",          "<Plug>(YankyPutAfter)",                                                       mode = { "n", "x" },       desc = "Put yanked text after cursor" },
   }
 }
