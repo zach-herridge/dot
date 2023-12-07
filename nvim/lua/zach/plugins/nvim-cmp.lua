@@ -30,6 +30,7 @@ return {
         end,
       },
       mapping = cmp.mapping.preset.insert({
+        ['<C-Space>'] = cmp.mapping.complete(),
         ["<CR>"] = cmp.mapping.confirm({
           behavior = cmp.ConfirmBehavior.Replace,
           select = true,
