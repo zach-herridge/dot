@@ -30,6 +30,7 @@ alias zh="cat ~/dot/help/tips.md"
 alias lt="exa -T -L 3 --icons --git-ignore"
 alias ls="exa -a -l --no-permissions --icons --no-user -h -s extension"
 alias lss="exa -a -l --no-permissions --icons --no-user -h -s size -r"
+alias devd="ssh dev-dsk-zachhe-1a-0f9127f8.us-east-1.amazon.com"
 
 eval "$(zoxide init zsh)"
 
