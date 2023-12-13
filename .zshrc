@@ -38,7 +38,7 @@ function ghpr() {
 }
 
 function bbcdi() {
-  fd template.json build/cdk.out -L | sed -e 's/build\/cdk.out\///g' | sed -e 's/.template.json//g' | fzf | awk '{print $1}' | xargs brazil-build cdk deploy {}
+  fd -L -I -p cdk.out -e template.json | sed -e 's/build\/cdk.out\///g' | sed -e 's/.template.json//g' | fzf | awk '{print $1}' | xargs brazil-build cdk deploy {}
 }
 
 eval "$(zoxide init zsh)"
