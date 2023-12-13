@@ -1,8 +1,8 @@
 #Install homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/$USER/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 #Install git
 brew install git
@@ -13,6 +13,7 @@ git clone https://github.com/zach-herridge/dot ~/dot
 #Install brew stuff
 brew install zoxide
 brew install fd
+brew install z
 brew install wget
 brew install exa
 brew install bat
