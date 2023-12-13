@@ -23,6 +23,8 @@ ysiw" - ys + inner word = surrounding the current word with "
 cs'" - change surrounding  '' to ""
 csth1 - change surrounding tag to h1 
 
+in visual mode press 'o' to switch directions
+
 ### misc
 brew list
 
