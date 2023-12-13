@@ -13,4 +13,4 @@ keymap.set({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent
 keymap.set({ "n", "x" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 
 -- find/replace shortcut
-keymap.set({ "n" }, "<leader>rs", ":%s///gc<Left><Left><Left><Left>")
+keymap.set({ "n" }, "<leader>rs", ":%s//X/gc<Left><Left><Left><Left><Left>")
