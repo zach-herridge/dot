@@ -17,10 +17,6 @@ source $ZSH/oh-my-zsh.sh
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-function ghpr() {
-  GH_FORCE_TTY=100% gh pr list | fzf --ansi --preview 'GH_FORCE_TTY=100% gh pr view {1}' --preview-window down --header-lines 3 | awk '{print $1}' | xargs gh pr checkout
-}
-
 alias vim="nvim"
 alias v="nvim"
 alias bb="brazil-build"
@@ -30,12 +26,20 @@ alias gt="lazygit"
 alias cd="z"
 alias ci="zi"
 alias cat="bat"
-alias cc="clear"
+alias c="clear"
 alias zh="cat ~/dot/help/tips.md"
 alias lt="exa -T -L 3 --icons --git-ignore"
 alias ls="exa -a -l --no-permissions --icons --no-user -h -s extension"
 alias lss="exa -a -l --no-permissions --icons --no-user -h -s size -r"
 alias devd="ssh dev-dsk-zachhe-1a-0f9127f8.us-east-1.amazon.com"
+
+function ghpr() {
+  GH_FORCE_TTY=100% gh pr list | fzf --ansi --preview 'GH_FORCE_TTY=100% gh pr view {1}' --preview-window down --header-lines 3 | awk '{print $1}' | xargs gh pr checkout
+}
+
+function bbcdi() {
+  fd template.json build/cdk.out -L | sed -e 's/build\/cdk.out\///g' | sed -e 's/.template.json//g' | fzf | awk '{print $1}' | xargs brazil-build cdk deploy {}
+}
 
 eval "$(zoxide init zsh)"
 
