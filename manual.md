@@ -8,4 +8,4 @@
 
 #ITerm2 -> Preferences -> Profiles -> keys -> General -> Choose "left Option key " 
 
-#Mac disable smart qoutes in prefs -> keyboard -> input
+#Mac disable smart quotes in prefs -> keyboard -> input

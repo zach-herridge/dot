@@ -51,7 +51,8 @@ return {
     },
     opts = {
       inlay_hints = { enabled = true },
-      servers = {},
+      servers = {
+      },
       setup = {},
     },
     config = function(_, opts)
@@ -117,7 +118,10 @@ return {
       local mlsp = require("mason-lspconfig")
       local all_mslp_servers = vim.tbl_keys(require("mason-lspconfig.mappings.server").lspconfig_to_package)
 
-      local ensure_installed = {}
+      local ensure_installed = {
+        "stylua",
+        "shfmt",
+      }
       for server, server_opts in pairs(servers) do
         if server_opts then
           server_opts = server_opts == true and {} or server_opts
