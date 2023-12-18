@@ -17,7 +17,6 @@ source $ZSH/oh-my-zsh.sh
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-alias vim="nvim"
 alias v="nvim"
 alias bb="brazil-build"
 alias bbb="brazil-recursive-cmd -all brazil-build --reverse"
