@@ -47,8 +47,8 @@ return {
     local builtin = require('telescope.builtin')
     keymap.set('n', '<leader>fd', function() builtin.find_files({ cwd = vim.fn.expand('%:p:h') }) end,
       { desc = "Find in file dir" })
-    keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Fuzzy find files in cwd" })
-    keymap.set("n", "<leader>fr", builtin.oldfiles, { desc = "Fuzzy find recent files" })
+    keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files in cwd" })
+    keymap.set("n", "<leader>fr", builtin.oldfiles, { desc = "Find recent files" })
     keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Find string in cwd" })
     keymap.set("n", "<leader>fs", builtin.current_buffer_fuzzy_find, { desc = "Find string in current file" })
     keymap.set("n", "<leader>fR", builtin.resume, { desc = "Resume last search" })
