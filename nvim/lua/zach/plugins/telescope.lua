@@ -56,5 +56,8 @@ return {
     keymap.set("n", "<leader>ft", builtin.treesitter, { desc = "Find treesitter" })
     keymap.set("n", "<leader>fH", builtin.help_tags, { desc = "Find help docs" })
     keymap.set("n", "<leader>cs", builtin.spell_suggest, { desc = "Get spelling help" })
+
+    keymap.set("n", "<leader>fgb", builtin.git_branches, { desc = "Git branches" })
+    keymap.set("n", "<leader>fc", builtin.git_status, { desc = "Git status" })
   end,
 }
