@@ -1,0 +1,11 @@
+theme = catppuccin-mocha.conf
+font-size = 15
+background-blur-radius = 20
+mouse-hide-while-typing = true
+window-decoration = true
+macos-option-as-alt = true
+macos-titlebar-proxy-icon = hidden
+title = " "
+window-padding-x = 10
+window-padding-y = 10
+

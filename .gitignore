@@ -1,0 +1,28 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+tmux/plugins*
+
+.idea
+
+# Neovim
+nvim/.netrwhist
+nvim/plugin/packer_compiled.lua
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# Local environment files
+.env
+.env.local
+
+AWSCLIV2*
