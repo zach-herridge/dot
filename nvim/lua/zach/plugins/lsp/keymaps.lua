@@ -6,10 +6,6 @@ local bemol_loaded = {}
 function M.on_attach(client, bufnr)
   local opts = { buffer = bufnr, silent = true }
   
-  vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-  vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-  vim.keymap.set("n", "gI", vim.lsp.buf.implementation, opts)
-  vim.keymap.set("n", "gy", vim.lsp.buf.type_definition, opts)
   vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
   vim.keymap.set("n", "gK", vim.lsp.buf.signature_help, opts)
   vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
@@ -33,6 +29,14 @@ function M.on_attach(client, bufnr)
           vim.lsp.buf.add_workspace_folder(line)
         end
         file:close()
+        
+        -- Add specific KAPT generated sources if they exist
+        local project_root = vim.fs.dirname(bemol_dir)
+        local kapt_dir = project_root .. '/build/PortageServiceCore/PortageServiceCore-1.0/AL2_x86_64/DEV.STD.PTHREAD/build/private/gradle/generated/source/kapt/main'
+        if vim.fn.isdirectory(kapt_dir) == 1 then
+          vim.lsp.buf.add_workspace_folder(kapt_dir)
+        end
+        
         bemol_loaded[client.id] = true
       end
     end

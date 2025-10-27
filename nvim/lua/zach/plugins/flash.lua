@@ -9,11 +9,11 @@ return {
         multi_line = true,
       },
       search = {
-        enabled = true, -- Enable flash in regular search
+        enabled = true,
       }
     },
     jump = {
-      autojump = true, -- Auto-jump if only one match
+      autojump = false,
     }
   },
   keys = {
