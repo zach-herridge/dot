@@ -2,13 +2,15 @@
 
 My curated development environment featuring modern CLI tools, optimized terminal workflows, and seamless configuration management. Built for productivity with Neovim, Tmux, and enhanced shell experience.
 
-## Quick Start
+## Setup
+
+If you prefer to run the setup script locally:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zach-herridge/dot/main/setup.sh | bash
+git clone https://github.com/zach-herridge/dot ~/dot
+cd ~/dot
+./setup.sh
 ```
-
-## What's Included
 
 ### Shell Configuration (Zsh)
 - **Starship prompt** - Fast, customizable prompt with git integration
@@ -45,35 +47,6 @@ curl -fsSL https://raw.githubusercontent.com/zach-herridge/dot/main/setup.sh | b
 | `lazygit` | Git TUI | `gt` |
 | `dua-cli` | Disk usage | `view_disk` |
 | `btop` | System monitor | `view_cpu` |
-
-## Manual Installation
-
-1. **Install dependencies:**
-   ```bash
-   # Install Homebrew if not present
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   
-   # Install Stow
-   brew install stow
-   ```
-
-2. **Clone and setup:**
-   ```bash
-   git clone https://github.com/zach-herridge/dot ~/dot
-   cd ~/dot
-   stow .
-   ```
-
-3. **Install tools:**
-   ```bash
-   brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty zsh-autosuggestions zsh-syntax-highlighting
-   brew install --HEAD neovim
-   ```
-
-4. **Setup tmux plugins:**
-   ```bash
-   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-   ```
 
 ## Key Features
 
