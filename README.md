@@ -1,10 +1,8 @@
 # Dotfiles
 
-My curated development environment featuring modern CLI tools, optimized terminal workflows, and seamless configuration management. Built for productivity with Neovim, Tmux, and enhanced shell experience.
+My curated development environment featuring modern CLI tools and optimized terminal workflows. Built for productivity with Neovim, Tmux, and enhanced shell experience.
 
 ## Setup
-
-If you prefer to run the setup script locally:
 
 ```bash
 git clone https://github.com/zach-herridge/dot ~/dot
