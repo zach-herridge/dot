@@ -23,11 +23,6 @@ return {
   config = function(_, opts)
     local autopairs = require("nvim-autopairs")
     autopairs.setup(opts)
-    
-    -- Integration with blink.cmp
-    local cmp_autopairs = require("nvim-autopairs.completion.cmp")
-    local blink = require("blink.cmp")
-    blink.on_confirm_done(cmp_autopairs.on_confirm_done())
   end,
 }
 

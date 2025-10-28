@@ -17,6 +17,12 @@ keymap.set("n", "<leader>cP", function()
   vim.fn.setreg("+", path)
 end, { desc = "Copy file path" })
 
+keymap.set("n", "<leader>cp", function()
+  local path = vim.fn.expand("%:p")
+  local line = vim.fn.line(".")
+  vim.fn.setreg("+", path .. ":" .. line)
+end, { desc = "Copy file path with line number" })
+
 keymap.set("n", "<leader>cR", function()
   local path = vim.fn.expand("%:p")
   local ft = vim.bo.filetype
@@ -49,4 +55,66 @@ keymap.set("n", "<leader>cR", function()
   end
 end, { desc = "Copy package reference" })
 
+keymap.set("n", "<leader>oL", function()
+  local path = vim.fn.expand("%:p")
+  local line = vim.fn.line(".")
+  
+  -- Get git root and current branch/commit
+  local git_root = vim.fn.system("git rev-parse --show-toplevel"):gsub("\n", "")
+  local commit = vim.fn.system("git rev-parse HEAD"):gsub("\n", "")
+  
+  -- Get relative path from git root
+  local rel_path = path:gsub(git_root .. "/", "")
+  
+  -- Extract package name from git root
+  local package_name = git_root:match("([^/]+)$")
+  
+  -- Build Amazon Git Farm URL
+  local url = string.format("https://code.amazon.com/packages/%s/blobs/%s/--/%s#L%d", 
+    package_name, commit, rel_path, line)
+  
+  -- Open in browser
+  vim.fn.system("open '" .. url .. "'")
+  vim.notify("Opened: " .. url)
+end, { desc = "Open in Amazon Git Farm" })
+
+keymap.set("n", "<leader>oP", function()
+  local git_root = vim.fn.system("git rev-parse --show-toplevel"):gsub("\n", "")
+  local package_name = git_root:match("([^/]+)$")
+  local url = "https://code.amazon.com/packages/" .. package_name
+  
+  vim.fn.system("open '" .. url .. "'")
+  vim.notify("Opened: " .. url)
+end, { desc = "Open package in Amazon Git Farm" })
+
+keymap.set("n", "<leader>op", function()
+  local package_name = vim.fn.expand("<cword>")
+  local url = "https://code.amazon.com/packages/" .. package_name
+  
+  vim.fn.system("open '" .. url .. "'")
+  vim.notify("Opened: " .. url)
+end, { desc = "Open package under cursor" })
+
+keymap.set("n", "<leader>oe", function()
+  local dir = vim.fn.expand("%:p:h")
+  vim.fn.system("open '" .. dir .. "'")
+end, { desc = "Open explorer" })
+keymap.set("n", "<leader>om", "<cmd>Mason<cr>", { desc = "Open mason" })
+keymap.set("n", "<leader>ol", "<cmd>Lazy<cr>", { desc = "Open lazy" })
+
+keymap.set("n", "<leader>ou", function()
+  local url = vim.fn.expand("<cWORD>")
+  if url:match("^https?://") then
+    vim.fn.system("open '" .. url .. "'")
+    vim.notify("Opened: " .. url)
+  else
+    vim.notify("No URL under cursor")
+  end
+end, { desc = "Open URL under cursor" })
+
 keymap.set("n", "<leader>c", "", { desc = "+code" })
+keymap.set("n", "<leader>o", "", { desc = "+open" })
+
+keymap.set("n", "<leader>cq", function()
+  require('zach.cloudwatch').execute_query()
+end, { desc = "Execute CloudWatch query" })
