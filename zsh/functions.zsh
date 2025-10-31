@@ -10,9 +10,7 @@ function ws_clean() {
     local current_dir="$PWD"
     local workplace_dir="/Users/zachhe/workplace"
     
-    # Check if we're in workplace directory tree
     if [[ "$current_dir" == "$workplace_dir"/* ]]; then
-        # Extract the project directory (first level under workplace)
         local project_dir=$(echo "$current_dir" | sed "s|$workplace_dir/||" | cut -d'/' -f1)
         local target_dir="$workplace_dir/$project_dir"
         
