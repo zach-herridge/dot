@@ -73,39 +73,13 @@ function M.setup_keymaps()
   -- Delete file
   vim.keymap.set("n", "d", M.delete_file, opts)
   
+  -- Show diff
+  vim.keymap.set("n", "p", M.show_diff, opts)
+  
   -- Refresh
   vim.keymap.set("n", "R", function()
     require("zach.git-status-panel").refresh()
   end, opts)
-end
-
-function M.shorten_path(path, max_width)
-  if #path <= max_width then
-    return path
-  end
-  
-  local parts = vim.split(path, "/")
-  if #parts <= 2 then
-    return path
-  end
-  
-  -- Keep filename and one parent directory
-  local filename = parts[#parts]
-  local parent = parts[#parts - 1]
-  local shortened = parent .. "/" .. filename
-  
-  -- If still too long, truncate parent directory
-  if #shortened > max_width then
-    local available = max_width - #filename - 1 -- -1 for "/"
-    if available > 3 then
-      parent = parent:sub(1, available - 3) .. "..."
-      shortened = parent .. "/" .. filename
-    else
-      shortened = ".../" .. filename
-    end
-  end
-  
-  return shortened
 end
 
 function M.update(status_data, unstaged_only)
@@ -125,7 +99,15 @@ function M.update(status_data, unstaged_only)
   local cwd = vim.fn.getcwd()
   local current_relative = current_file:gsub("^" .. cwd .. "/", "")
   
+  -- Create title with branch info for single repo
   local title = unstaged_only and "Git Status (Unstaged)" or "Git Status"
+  if vim.tbl_count(status_data) == 1 then
+    local _, repo_data = next(status_data)
+    if repo_data.branch then
+      title = title .. " [" .. repo_data.branch .. "]"
+    end
+  end
+  
   table.insert(lines, title)
   table.insert(lines, string.rep("-", #title))
   table.insert(lines, "")
@@ -144,18 +126,22 @@ function M.update(status_data, unstaged_only)
     for _, repo_name in ipairs(sorted_repos) do
       local repo_data = status_data[repo_name]
       
-      -- Show repo/package name if multiple repos
+      -- Show repo/package name with branch if multiple repos
       if vim.tbl_count(status_data) > 1 then
-        table.insert(lines, "[" .. repo_name .. "]")
+        local header = "[" .. repo_name .. "]"
+        if repo_data.branch then
+          header = header .. " (" .. repo_data.branch .. ")"
+        end
+        table.insert(lines, header)
         line_num = line_num + 1
       end
       
       for _, file_data in ipairs(repo_data.files) do
         -- Filter for unstaged changes if requested
         if not unstaged_only or file_data.status:sub(2, 2) ~= " " then
-          local short_path = M.shorten_path(file_data.file, 30)
+          local filename = vim.fn.fnamemodify(file_data.file, ":t")
           local indicator = file_data.file == current_relative and ">" or " "
-          table.insert(lines, file_data.status .. indicator .. short_path)
+          table.insert(lines, file_data.status .. indicator .. filename)
           
           -- Store complete file data for this line
           line_data[line_num] = {
@@ -174,6 +160,18 @@ function M.update(status_data, unstaged_only)
       end
     end
   end
+  
+  -- Add cheatsheet at bottom
+  table.insert(lines, "")
+  table.insert(lines, "Cheatsheet:")
+  table.insert(lines, "M  = Modified")
+  table.insert(lines, "A  = Added")
+  table.insert(lines, "D  = Deleted")
+  table.insert(lines, "R  = Renamed")
+  table.insert(lines, "C  = Copied")
+  table.insert(lines, "?? = Untracked")
+  table.insert(lines, "MM = Modified (staged + unstaged)")
+  table.insert(lines, "AM = Added + modified")
   
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
@@ -264,6 +262,22 @@ function M.toggle_stage()
       end
     end)
   end)
+end
+
+function M.show_diff()
+  local line_num = vim.api.nvim_win_get_cursor(0)[1]
+  local data = line_data[line_num]
+  
+  if not data then
+    return
+  end
+  
+  -- Use diffview to show current changes against HEAD
+  vim.cmd("DiffviewOpen -- " .. vim.fn.fnameescape(data.file))
+  -- Hide the file panel
+  vim.defer_fn(function()
+    vim.cmd("DiffviewToggleFiles")
+  end, 100)
 end
 
 function M.jump_to_next_file()

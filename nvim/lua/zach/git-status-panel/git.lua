@@ -61,11 +61,12 @@ function M.get_status_for_repos(repos, callback)
   for _, repo in ipairs(repos) do
     local repo_name = vim.fn.fnamemodify(repo, ":t")
     
-    M.get_changed_files(repo, function(files)
+    M.get_changed_files(repo, function(files, branch)
       if #files > 0 then
         status_data[repo_name] = {
           path = repo,
-          files = files
+          files = files,
+          branch = branch
         }
       end
       
@@ -80,28 +81,38 @@ end
 
 function M.get_changed_files(repo_path, callback)
   local cmd = { "git", "status", "--porcelain" }
+  local branch_cmd = { "git", "branch", "--show-current" }
   
-  vim.system(cmd, { cwd = repo_path }, function(result)
-    local files = {}
-    
-    if result.code == 0 and result.stdout then
-      for line in result.stdout:gmatch("[^\r\n]+") do
-        local status = line:sub(1, 2)
-        local file = line:sub(4)
-        
-        table.insert(files, {
-          status = status,
-          file = file,
-          full_path = repo_path .. "/" .. file,
-        })
-      end
+  -- Get branch name first
+  vim.system(branch_cmd, { cwd = repo_path }, function(branch_result)
+    local branch = "unknown"
+    if branch_result.code == 0 and branch_result.stdout then
+      branch = branch_result.stdout:gsub("\n", "")
     end
     
-    -- Sort files by path for stable order
-    table.sort(files, function(a, b) return a.file < b.file end)
-    
-    vim.schedule(function()
-      callback(files)
+    -- Then get file status
+    vim.system(cmd, { cwd = repo_path }, function(result)
+      local files = {}
+      
+      if result.code == 0 and result.stdout then
+        for line in result.stdout:gmatch("[^\r\n]+") do
+          local status = line:sub(1, 2)
+          local file = line:sub(4)
+          
+          table.insert(files, {
+            status = status,
+            file = file,
+            full_path = repo_path .. "/" .. file,
+          })
+        end
+      end
+      
+      -- Sort files by path for stable order
+      table.sort(files, function(a, b) return a.file < b.file end)
+      
+      vim.schedule(function()
+        callback(files, branch)
+      end)
     end)
   end)
 end

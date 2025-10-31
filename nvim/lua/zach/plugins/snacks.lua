@@ -32,6 +32,7 @@ return {
     { "<leader>fg", function() Snacks.picker.grep() end, desc = "Find string in cwd" },
     { "<leader>fw", function() Snacks.picker.grep_word() end, desc = "Find word under cursor" },
     { "<leader>fs", function() Snacks.picker.lines() end, desc = "Find string in current file" },
+    { "<leader>fu", function() Snacks.picker.undo() end, desc = "Find undo states" },
     { "<leader>fR", function() Snacks.picker.resume() end, desc = "Resume last search" },
     { "<leader>fX", function() Snacks.picker.diagnostics() end, desc = "Find diagnostics" },
     { "<leader>ft", function() Snacks.picker.treesitter() end, desc = "Find treesitter" },

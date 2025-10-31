@@ -2,6 +2,24 @@ return {
   "git-status-panel",
   dev = true,
   dir = vim.fn.stdpath("config") .. "/lua/zach/git-status-panel",
+  dependencies = {
+    {
+      "sindrets/diffview.nvim",
+      opts = {
+        keymaps = {
+          view = {
+            ["q"] = "<cmd>DiffviewClose<cr>",
+          },
+          file_panel = {
+            ["q"] = "<cmd>DiffviewClose<cr>",
+          },
+          file_history_panel = {
+            ["q"] = "<cmd>DiffviewClose<cr>",
+          },
+        },
+      },
+    },
+  },
   config = function()
     require("zach.git-status-panel").setup({
       refresh_interval = 2000,
