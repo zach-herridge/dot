@@ -2,6 +2,11 @@ vim.g.mapleader = " "
 
 local keymap = vim.keymap
 
+-- Disable command history and search history windows
+keymap.set("n", "q:", "<nop>")
+keymap.set("n", "q/", "<nop>")
+keymap.set("n", "q?", "<nop>")
+
 keymap.set({ "n", "i", "v" }, "<Left>", "")
 keymap.set({ "n", "i", "v" }, "<Right>", "")
 keymap.set({ "n", "i", "v" }, "<Up>", "")

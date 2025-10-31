@@ -17,6 +17,21 @@ return {
             ["q"] = "<cmd>DiffviewClose<cr>",
           },
         },
+        hooks = {
+          diff_buf_read = function(bufnr)
+            -- Disable conflicting plugins in diff buffers
+            vim.api.nvim_buf_call(bufnr, function()
+              if vim.fn.exists(":Gitsigns") > 0 then
+                vim.cmd("Gitsigns detach")
+              end
+              -- Disable other potential conflicts
+              vim.opt_local.cursorline = false
+              vim.opt_local.cursorcolumn = false
+              -- Disable swap files for diff buffers
+              vim.opt_local.swapfile = false
+            end)
+          end,
+        },
       },
     },
   },

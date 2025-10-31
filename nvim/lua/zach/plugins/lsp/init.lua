@@ -20,8 +20,10 @@ return {
       local keymaps = require("zach.plugins.lsp.keymaps")
 
       for server, server_opts in pairs(opts.servers) do
-        server_opts.on_attach = keymaps.on_attach
-        lspconfig[server].setup(server_opts)
+        if lspconfig[server] then
+          server_opts.on_attach = keymaps.on_attach
+          lspconfig[server].setup(server_opts)
+        end
       end
     end,
   },

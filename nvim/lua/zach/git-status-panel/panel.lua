@@ -147,7 +147,8 @@ function M.update(status_data, unstaged_only)
           line_data[line_num] = {
             file = file_data.file,
             full_path = file_data.full_path,
-            status = file_data.status
+            status = file_data.status,
+            repo_path = repo_data.path
           }
           line_num = line_num + 1
         end
@@ -268,16 +269,34 @@ function M.show_diff()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
   
-  if not data then
+  if not data or not data.repo_path then
     return
   end
   
-  -- Use diffview to show current changes against HEAD
-  vim.cmd("DiffviewOpen -- " .. vim.fn.fnameescape(data.file))
-  -- Hide the file panel
+  -- Calculate relative path from repo root
+  local relative_path = data.full_path:gsub("^" .. data.repo_path .. "/", "")
+  
+  -- Close any existing diffview first
+  pcall(function() vim.cmd("DiffviewClose") end)
+  
+  -- Use diffview.open() like the command does
+  local diffview = require("diffview")
+  
+  -- Create args array like the command would
+  local args = {
+    "-C" .. data.repo_path,
+    "HEAD",
+    "--",
+    relative_path
+  }
+  
+  -- Call diffview.open() like the command does
+  diffview.open(args)
+  
+  -- Hide file panel after diffview opens
   vim.defer_fn(function()
     vim.cmd("DiffviewToggleFiles")
-  end, 100)
+  end, 200)
 end
 
 function M.jump_to_next_file()
