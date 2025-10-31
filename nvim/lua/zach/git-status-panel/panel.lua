@@ -215,7 +215,7 @@ function M.revert_file()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
   
-  if not data then
+  if not data or not data.repo_path then
     return
   end
   
@@ -227,7 +227,7 @@ function M.revert_file()
   
   local cmd = { "git", "checkout", "HEAD", "--", data.file }
   
-  vim.system(cmd, { cwd = vim.fn.getcwd() }, function(result)
+  vim.system(cmd, { cwd = data.repo_path }, function(result)
     vim.schedule(function()
       if result.code == 0 then
         require("zach.git-status-panel").refresh()
@@ -242,7 +242,7 @@ function M.toggle_stage()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
   
-  if not data then
+  if not data or not data.repo_path then
     return
   end
   
@@ -256,7 +256,7 @@ function M.toggle_stage()
     cmd = { "git", "reset", "HEAD", data.file }
   end
   
-  vim.system(cmd, { cwd = vim.fn.getcwd() }, function(result)
+  vim.system(cmd, { cwd = data.repo_path }, function(result)
     vim.schedule(function()
       if result.code == 0 then
         require("zach.git-status-panel").refresh()

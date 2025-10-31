@@ -7,7 +7,6 @@ local config = {
     width = 40,
     height = 0.8,
   },
-  show_line_counts = true,
 }
 
 local panel = require("zach.git-status-panel.panel")

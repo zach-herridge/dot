@@ -37,13 +37,12 @@ return {
   },
   config = function()
     require("zach.git-status-panel").setup({
-      refresh_interval = 2000,
+      refresh_interval = 5000,
       window = {
         position = "right",
         width = 40,
         height = 0.8,
       },
-      show_line_counts = true,
     })
   end,
   keys = {

@@ -24,7 +24,15 @@ return {
   keys = {
     { "<leader>fD", function() Snacks.explorer() end, desc = "File browser" },
     { "<leader>sn", function() Snacks.notifier.show_history() end, desc = "Notification History" },
-    { "<leader>gg", function() Snacks.lazygit() end, desc = "Lazygit" },
+    { "<leader>gg", function() 
+      local git_utils = require("zach.utils.git")
+      local git_root = git_utils.find_git_root()
+      if git_root then
+        Snacks.lazygit({ cwd = git_root })
+      else
+        Snacks.lazygit()
+      end
+    end, desc = "Lazygit" },
 
     { "<leader>fd", function() Snacks.picker.files({ cwd = vim.fn.expand('%:p:h') }) end, desc = "Find in file dir" },
     { "<leader><space>", function() Snacks.picker.smart() end, desc = "Find files smart"},
@@ -52,13 +60,29 @@ return {
 
     { "<leader>gc", function() Snacks.picker.git_status() end, desc = "Git changed files" },
     { "<leader>gf", function() Snacks.picker.git_files() end, desc = "Git files" },
-    { "<leader>fgb", function() Snacks.picker.git_branches() end, desc = "Git branches" },
+    { "<leader>fGb", function() Snacks.picker.git_branches() end, desc = "Git branches" },
 
     { "<leader>tt", function() Snacks.terminal() end, desc = "Terminal" },
     { "<leader>tz", function() Snacks.zen() end, desc = "Zen mode" },
   },
 
   config = function(_, opts)
+    local rg = require("zach.utils.ripgrep")
+    
+    -- Update picker sources
+    opts.picker = opts.picker or {}
+    opts.picker.sources = {
+      grep = {
+        cmd = "rg",
+        args = rg.make_args(),
+        parse_args = true,
+      },
+      grep_word = {
+        cmd = "rg",
+        args = rg.make_args({"--word-regexp"}),
+      },
+    }
+    
     require("snacks").setup(opts)
     Snacks.toggle.diagnostics():map("<leader>td")
     Snacks.toggle.option("spell"):map("<leader>ts")

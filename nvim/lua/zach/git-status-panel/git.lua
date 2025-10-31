@@ -80,7 +80,7 @@ function M.get_status_for_repos(repos, callback)
 end
 
 function M.get_changed_files(repo_path, callback)
-  local cmd = { "git", "status", "--porcelain" }
+  local cmd = { "git", "status", "--porcelain", "-u" } -- -u shows individual untracked files
   local branch_cmd = { "git", "branch", "--show-current" }
   
   -- Get branch name first
@@ -96,14 +96,19 @@ function M.get_changed_files(repo_path, callback)
       
       if result.code == 0 and result.stdout then
         for line in result.stdout:gmatch("[^\r\n]+") do
-          local status = line:sub(1, 2)
-          local file = line:sub(4)
-          
-          table.insert(files, {
-            status = status,
-            file = file,
-            full_path = repo_path .. "/" .. file,
-          })
+          if line and #line >= 4 then -- Ensure line has at least status + space + filename
+            local status = line:sub(1, 2)
+            local file = line:sub(4)
+            
+            -- Skip empty filenames and directories (ending with /)
+            if file and file:match("%S") and not file:match("/$") then
+              table.insert(files, {
+                status = status,
+                file = file,
+                full_path = repo_path .. "/" .. file,
+              })
+            end
+          end
         end
       end
       
