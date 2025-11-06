@@ -187,9 +187,6 @@ function M.update(status_data, unstaged_only)
           end
         end
       else
-        -- Show "No changes" under the project header
-        table.insert(lines, "  No changes")
-        line_num = line_num + 1
       end
 
       -- Add spacing between repos if multiple
@@ -349,7 +346,8 @@ function M.revert_file()
       if result.code == 0 then
         require("zach.git-status-panel").refresh()
       else
-        vim.notify("Failed to revert " .. data.file, vim.log.levels.ERROR)
+        local error_msg = result.stderr or "Unknown error"
+        vim.notify("Failed to revert " .. data.file .. ": " .. error_msg, vim.log.levels.ERROR)
       end
     end)
   end)
@@ -382,7 +380,8 @@ function M.revert_unstaged()
       if result.code == 0 then
         require("zach.git-status-panel").refresh()
       else
-        vim.notify("Failed to revert unstaged changes for " .. data.file, vim.log.levels.ERROR)
+        local error_msg = result.stderr or "Unknown error"
+        vim.notify("Failed to revert unstaged changes for " .. data.file .. ": " .. error_msg, vim.log.levels.ERROR)
       end
     end)
   end)
