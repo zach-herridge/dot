@@ -11,7 +11,7 @@ return {
     quickfile = { enabled = true },
     statuscolumn = { enabled = true },
     words = { enabled = false },
-    explorer = { enabled = true },
+    explorer = { enabled = false },
     git = { enabled = true },
     picker = { enabled = true },
     indent = { enabled = false },
@@ -22,9 +22,8 @@ return {
     zen = { enabled = true },
   },
   keys = {
-    { "<leader>fD", function() Snacks.explorer() end, desc = "File browser" },
     { "<leader>sn", function() Snacks.notifier.show_history() end, desc = "Notification History" },
-    { "<leader>gg", function() 
+    { "<leader>gg", function()
       local git_utils = require("zach.utils.git")
       local git_root = git_utils.find_git_root()
       if git_root then
@@ -68,7 +67,7 @@ return {
 
   config = function(_, opts)
     local rg = require("zach.utils.ripgrep")
-    
+
     -- Update picker sources
     opts.picker = opts.picker or {}
     opts.picker.sources = {
@@ -82,7 +81,7 @@ return {
         args = rg.make_args({"--word-regexp"}),
       },
     }
-    
+
     require("snacks").setup(opts)
     Snacks.toggle.diagnostics():map("<leader>td")
     Snacks.toggle.option("spell"):map("<leader>ts")

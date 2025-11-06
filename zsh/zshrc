@@ -1,6 +1,7 @@
 source ~/dot/zsh/exports.zsh
 source ~/dot/zsh/path.zsh
 source ~/dot/zsh/tools.zsh
+source ~/dot/zsh/history.zsh
 source ~/dot/zsh/completions.zsh
 source ~/dot/zsh/modern-zsh.zsh
 source ~/dot/zsh/aliases.zsh

@@ -24,6 +24,12 @@ zstyle ':completion:*:-command-:*:' verbose false
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "${HOME}/.zcompcache"
 
+# Load complist module for menuselect keymap
+zmodload zsh/complist
+
+# Auto-select first completion item
+zstyle ':completion:*' menu select
+
 # Better completion menu navigation
 bindkey -M menuselect '^M' accept-line          # Enter to accept
 bindkey -M menuselect '^[[Z' reverse-menu-complete  # Shift+Tab to go backwards

@@ -16,10 +16,9 @@ return {
         globalstatus = true,
         disabled_filetypes = { statusline = { "dashboard", "alpha", "starter" } },
       },
-      extensions = { "neo-tree", "lazy" },
+      extensions = { "lazy" },
       sections = {
         lualine_a = { 'mode' },
-        lualine_b = { 'branch', 'diff', 'diagnostics' },
         lualine_c = {
           { 'filename', path = 1 },
           {

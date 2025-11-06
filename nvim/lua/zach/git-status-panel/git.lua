@@ -62,13 +62,12 @@ function M.get_status_for_repos(repos, callback)
     local repo_name = vim.fn.fnamemodify(repo, ":t")
     
     M.get_changed_files(repo, function(files, branch)
-      if #files > 0 then
-        status_data[repo_name] = {
-          path = repo,
-          files = files,
-          branch = branch
-        }
-      end
+      -- Always include the repository, even if it has no changes
+      status_data[repo_name] = {
+        path = repo,
+        files = files,
+        branch = branch
+      }
       
       pending = pending - 1
       if pending == 0 then
