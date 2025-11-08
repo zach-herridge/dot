@@ -22,7 +22,7 @@ mkdir -p ~/dot/zsh
 stow .
 
 echo "Installing tools via Homebrew..."
-brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty zsh-autosuggestions zsh-syntax-highlighting
+brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty zsh-autosuggestions zsh-syntax-highlighting astroterm
 brew install --HEAD neovim
 
 if [ ! -d ~/.tmux/plugins/tpm ]; then
