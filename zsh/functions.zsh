@@ -30,3 +30,12 @@ clc() {
     fc -ln -2 -2 | pbcopy
     echo "Last command copied to clipboard"
 }
+
+# Tmux scrollback to nvim (no history)
+tmux-scrollback() {
+    nvim =(tmux capture-pane -pS -)
+}
+# Edit tmux scrollback in nvim
+scrollback() {
+    nvim -c 'normal! G' =(tmux capture-pane -pS -)
+}
