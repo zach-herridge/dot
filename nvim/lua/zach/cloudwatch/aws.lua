@@ -3,7 +3,7 @@ local M = {}
 function M.start_query(query_text, config, callback)
   local end_time = os.time()
   local start_time = end_time - (3600) -- 1 hour ago
-  
+
   local cmd
   if #config.log_groups == 0 then
     -- Use SOURCE logGroups syntax for all log groups
@@ -22,7 +22,7 @@ function M.start_query(query_text, config, callback)
       log_groups, start_time, end_time, vim.fn.shellescape(query_text)
     )
   end
-  
+
   vim.fn.jobstart(cmd, {
     stdout_buffered = true,
     on_stdout = function(_, data)
@@ -50,10 +50,10 @@ end
 function M.poll_results(query_id, filename, callback)
   local timer = vim.loop.new_timer()
   local results_module = require('zach.cloudwatch.results')
-  
+
   local function check_status()
     local cmd = string.format("aws logs get-query-results --region us-east-1 --query-id %s --output json", query_id)
-    
+
     vim.fn.jobstart(cmd, {
       stdout_buffered = true,
       on_stdout = function(_, data)
@@ -78,7 +78,7 @@ function M.poll_results(query_id, filename, callback)
       end
     })
   end
-  
+
   -- Poll every 2 seconds
   timer:start(0, 2000, vim.schedule_wrap(check_status))
 end

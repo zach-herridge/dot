@@ -17,18 +17,18 @@ keymap.set({ "n", "x" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent
 
 keymap.set({ "n" }, "<leader>rs", ":%s//X/gc<Left><Left><Left><Left><Left>")
 
-keymap.set("n", "<leader>cP", function()
+keymap.set("n", "<leader>yP", function()
   local path = vim.fn.expand("%:p")
   vim.fn.setreg("+", path)
 end, { desc = "Copy file path" })
 
-keymap.set("n", "<leader>cp", function()
+keymap.set("n", "<leader>yp", function()
   local path = vim.fn.expand("%:p")
   local line = vim.fn.line(".")
   vim.fn.setreg("+", path .. ":" .. line)
 end, { desc = "Copy file path with line number" })
 
-keymap.set("n", "<leader>cR", function()
+keymap.set("n", "<leader>yR", function()
   local path = vim.fn.expand("%:p")
   local ft = vim.bo.filetype
 

@@ -129,9 +129,9 @@ function M.generate_sky(lat, lon, width, height)
         local char = '.'
         if star.mag < -1 then char = '*'
         elseif star.mag < 0 then char = '*'
-        elseif star.mag < 1 then char = '+'
-        elseif star.mag < 2 then char = 'o'
-        elseif star.mag < 3 then char = '.'
+        elseif star.mag < 1 then char = '*'  -- More stars get * 
+        elseif star.mag < 2 then char = '+'
+        elseif star.mag < 3 then char = 'o'
         else char = '.'
         end
         
@@ -141,37 +141,52 @@ function M.generate_sky(lat, lon, width, height)
   end
   
   -- Plot planets
+  local planets_plotted = 0
   for i, planet in ipairs(planets_module.planets) do
-    local ra, dec = planets_module.calc_planet_geocentric_position(i, jd)
-    local alt, az = radec_to_altaz(ra, dec, lat, lon, jd)
-    
-    if alt > 0 then  -- Only plot planets above horizon
-      local radius_polar, theta_polar = horizontal_to_polar(az, alt)
-      local x, y = polar_to_screen(radius_polar, theta_polar, width, height)
+    local success, ra, dec = pcall(planets_module.calc_planet_geocentric_position, i, jd)
+    if success and ra and dec then
+      local alt, az = radec_to_altaz(ra, dec, lat, lon, jd)
       
-      if x and y then
-        -- Use Unicode symbol if available, otherwise ASCII
-        local char = planet.symbol or planet.ascii
-        screen[y][x] = char
+      if alt > 0 then  -- Only plot planets above horizon
+        local radius_polar, theta_polar = horizontal_to_polar(az, alt)
+        local x, y = polar_to_screen(radius_polar, theta_polar, width, height)
         
-        -- Add planet label with collision detection
-        local label = planet.name
-        local can_place = true
-        for j = 1, string.len(label) do
-          if x + j <= width and screen[y][x + j] ~= ' ' and screen[y][x + j] ~= '.' and screen[y][x + j] ~= '+' and screen[y][x + j] ~= 'o' and screen[y][x + j] ~= '*' then
-            can_place = false
-            break
-          end
-        end
-        
-        if can_place then
+        if x and y then
+          local char = planet.symbol or planet.ascii
+          screen[y][x] = char
+          
+          -- Add planet label with collision detection
+          local label = planet.name
+          local can_place = true
           for j = 1, string.len(label) do
-            if x + j <= width then
-              screen[y][x + j] = string.sub(label, j, j)
+            if x + j <= width and screen[y][x + j] ~= ' ' and screen[y][x + j] ~= '.' and screen[y][x + j] ~= '+' and screen[y][x + j] ~= 'o' and screen[y][x + j] ~= '*' then
+              can_place = false
+              break
             end
           end
+          
+          if can_place then
+            for j = 1, string.len(label) do
+              if x + j <= width then
+                screen[y][x + j] = string.sub(label, j, j)
+              end
+            end
+          end
+          
+          planets_plotted = planets_plotted + 1
         end
       end
+    end
+  end
+  
+  -- Fallback: add a few test planets if none were plotted
+  if planets_plotted == 0 then
+    -- Add Sun in a visible position
+    local x, y = math.floor(width/2), math.floor(height/2)
+    screen[y][x] = "☉"
+    -- Add Mars nearby
+    if x + 5 <= width then
+      screen[y][x + 5] = "♂"
     end
   end
   

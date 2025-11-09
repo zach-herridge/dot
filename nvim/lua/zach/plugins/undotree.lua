@@ -7,10 +7,10 @@ return {
     -- Enable persistent undo
     vim.opt.undofile = true
     vim.opt.undodir = vim.fn.stdpath("data") .. "/undo"
-    
+
     -- Create undo directory if it doesn't exist
     vim.fn.mkdir(vim.fn.stdpath("data") .. "/undo", "p")
-    
+
     -- Configure undotree
     vim.g.undotree_WindowLayout = 2 -- Layout with diff window
     vim.g.undotree_SplitWidth = 30
