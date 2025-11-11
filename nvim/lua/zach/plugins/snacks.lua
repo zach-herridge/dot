@@ -35,31 +35,19 @@ return {
 
     { "<leader>fd", function() Snacks.picker.files({ cwd = vim.fn.expand('%:p:h') }) end, desc = "Find in file dir" },
     { "<leader><space>", function() 
-      local git_utils = require("zach.utils.git")
-      local repos = git_utils.find_all_git_roots()
-      if #repos == 1 then
-        Snacks.picker.git_files({ 
-          cwd = repos[1],
-          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
-        })
-      elseif #repos > 1 then
-        Snacks.picker.pick({
-          multi = vim.tbl_map(function(repo)
-            return { source = "git_files", cwd = repo }
-          end, repos),
-          format = "file",
-          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
-        })
-      else
-        Snacks.picker.files({
-          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
-        })
-      end
+      require("zach.utils.git").git_picker("git_files", {
+        matcher = { frecency = true, cwd_bonus = true, sort_empty = true },
+        fallback = "files"
+      })
     end, desc = "Find git files"},
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find files" },
-    { "<leader>fr", function() Snacks.picker.recent() end, desc = "Find files" },
-    { "<leader>fg", function() Snacks.picker.grep() end, desc = "Find string in cwd" },
-    { "<leader>fw", function() Snacks.picker.grep_word() end, desc = "Find word under cursor" },
+    { "<leader>fr", function() Snacks.picker.recent() end, desc = "Find recent files" },
+    { "<leader>fg", function() 
+      require("zach.utils.git").git_picker("grep", { fallback = "grep" })
+    end, desc = "Find string in git files" },
+    { "<leader>fw", function() 
+      require("zach.utils.git").git_picker("grep_word", { fallback = "grep_word" })
+    end, desc = "Find word under cursor in git files" },
     { "<leader>fs", function() Snacks.picker.lines() end, desc = "Find string in current file" },
     { "<leader>fu", function() Snacks.picker.undo() end, desc = "Find undo states" },
     { "<leader>fX", function() Snacks.picker.diagnostics() end, desc = "Find diagnostics" },
