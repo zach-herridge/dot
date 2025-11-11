@@ -34,7 +34,28 @@ return {
     end, desc = "Lazygit" },
 
     { "<leader>fd", function() Snacks.picker.files({ cwd = vim.fn.expand('%:p:h') }) end, desc = "Find in file dir" },
-    { "<leader><space>", function() Snacks.picker.resume() end, desc = "Find files smart"},
+    { "<leader><space>", function() 
+      local git_utils = require("zach.utils.git")
+      local repos = git_utils.find_all_git_roots()
+      if #repos == 1 then
+        Snacks.picker.git_files({ 
+          cwd = repos[1],
+          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
+        })
+      elseif #repos > 1 then
+        Snacks.picker.pick({
+          multi = vim.tbl_map(function(repo)
+            return { source = "git_files", cwd = repo }
+          end, repos),
+          format = "file",
+          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
+        })
+      else
+        Snacks.picker.files({
+          matcher = { frecency = true, cwd_bonus = true, sort_empty = true }
+        })
+      end
+    end, desc = "Find git files"},
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find files" },
     { "<leader>fr", function() Snacks.picker.recent() end, desc = "Find files" },
     { "<leader>fg", function() Snacks.picker.grep() end, desc = "Find string in cwd" },

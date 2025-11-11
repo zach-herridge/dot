@@ -2,23 +2,22 @@ local M = {}
 
 function M.start_query(query_text, config, callback)
   local end_time = os.time()
-  local start_time = end_time - (3600) -- 1 hour ago
+  local start_time = end_time - (3600)
 
   local cmd
   if #config.log_groups == 0 then
-    -- Use SOURCE logGroups syntax for all log groups
     local full_query = string.format(
       "SOURCE logGroups(namePrefix: [], class: \"STANDARD\") START=-3600s END=0s |\n%s",
       query_text
     )
     cmd = string.format(
-      "aws logs start-query --region us-east-1 --start-time %d --end-time %d --query-string %s --output json",
+      "aws logs start-query --start-time %d --end-time %d --query-string %s --output json",
       start_time, end_time, vim.fn.shellescape(full_query)
     )
   else
     local log_groups = table.concat(config.log_groups, " ")
     cmd = string.format(
-      "aws logs start-query --region us-east-1 --log-group-names %s --start-time %d --end-time %d --query-string %s --output json",
+      "aws logs start-query --log-group-names %s --start-time %d --end-time %d --query-string %s --output json",
       log_groups, start_time, end_time, vim.fn.shellescape(query_text)
     )
   end
@@ -52,7 +51,7 @@ function M.poll_results(query_id, filename, callback)
   local results_module = require('zach.cloudwatch.results')
 
   local function check_status()
-    local cmd = string.format("aws logs get-query-results --region us-east-1 --query-id %s --output json", query_id)
+    local cmd = string.format("aws logs get-query-results --query-id %s --output json", query_id)
 
     vim.fn.jobstart(cmd, {
       stdout_buffered = true,
@@ -70,7 +69,6 @@ function M.poll_results(query_id, filename, callback)
               timer:close()
               results_module.update_status(filename, "Query failed")
             else
-              -- Update status while running
               results_module.update_status(filename, "Query " .. (result.status or "running") .. "...")
             end
           end
@@ -79,7 +77,6 @@ function M.poll_results(query_id, filename, callback)
     })
   end
 
-  -- Poll every 2 seconds
   timer:start(0, 2000, vim.schedule_wrap(check_status))
 end
 
