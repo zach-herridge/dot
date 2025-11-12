@@ -1,6 +1,5 @@
 local M = {}
 
--- Track which clients have already loaded Bemol workspace folders
 local bemol_loaded = {}
 
 function M.on_attach(client, bufnr)
