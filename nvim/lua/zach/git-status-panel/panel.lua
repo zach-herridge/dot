@@ -155,7 +155,20 @@ function M.update(status_data, unstaged_only)
       -- Always show repo/package name with branch (for both single and multiple repos)
       local header = repo_name
       if repo_data.branch then
-        header = header .. " (" .. repo_data.branch .. ")"
+        header = header .. " (" .. repo_data.branch
+        if repo_data.ahead and repo_data.behind and (repo_data.ahead > 0 or repo_data.behind > 0) then
+          local upstream_info = ""
+          if repo_data.ahead > 0 then
+            upstream_info = upstream_info .. "↑" .. repo_data.ahead
+          end
+          if repo_data.behind > 0 then
+            upstream_info = upstream_info .. "↓" .. repo_data.behind
+          end
+          if upstream_info ~= "" then
+            header = header .. " " .. upstream_info
+          end
+        end
+        header = header .. ")"
       end
       table.insert(lines, header)
       -- Store project data for this line

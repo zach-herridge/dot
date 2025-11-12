@@ -1,6 +1,6 @@
 return {
   { import = "zach.plugins.lsp.lang" },
-  
+
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
@@ -15,7 +15,7 @@ return {
     config = function(_, opts)
       local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
       vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
-      
+
       local lspconfig = require("lspconfig")
       local keymaps = require("zach.plugins.lsp.keymaps")
 

@@ -13,8 +13,25 @@ return {
     words = { enabled = false },
     explorer = { enabled = false },
     git = { enabled = true },
-    picker = { enabled = true },
+    picker = {
+      enabled = true,
+      win = {
+        input = {
+          keys = {
+            ["<Tab>"] = false,
+            ["<S-Tab>"] = false
+          }
+        },
+        list = {
+          keys = {
+            ["<Tab>"] = false,
+            ["<S-Tab>"] = false
+          }
+        }
+      }
+    },
     indent = { enabled = false },
+    image = { enabled = true },
     input = { enabled = true },
     scroll = { enabled = false },
     terminal = { enabled = true },
