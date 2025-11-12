@@ -61,12 +61,14 @@ function M.get_status_for_repos(repos, callback)
   for _, repo in ipairs(repos) do
     local repo_name = vim.fn.fnamemodify(repo, ":t")
     
-    M.get_changed_files(repo, function(files, branch)
+    M.get_changed_files(repo, function(files, branch, ahead, behind)
       -- Always include the repository, even if it has no changes
       status_data[repo_name] = {
         path = repo,
         files = files,
-        branch = branch
+        branch = branch,
+        ahead = ahead,
+        behind = behind
       }
       
       pending = pending - 1
@@ -81,6 +83,7 @@ end
 function M.get_changed_files(repo_path, callback)
   local cmd = { "git", "status", "--porcelain", "-u" } -- -u shows individual untracked files
   local branch_cmd = { "git", "branch", "--show-current" }
+  local upstream_cmd = { "git", "rev-list", "--left-right", "--count", "HEAD...@{upstream}" }
   
   -- Get branch name first
   vim.system(branch_cmd, { cwd = repo_path }, function(branch_result)
@@ -89,33 +92,43 @@ function M.get_changed_files(repo_path, callback)
       branch = branch_result.stdout:gsub("\n", "")
     end
     
-    -- Then get file status
-    vim.system(cmd, { cwd = repo_path }, function(result)
-      local files = {}
+    -- Get upstream comparison
+    vim.system(upstream_cmd, { cwd = repo_path }, function(upstream_result)
+      local ahead, behind = 0, 0
+      if upstream_result.code == 0 and upstream_result.stdout then
+        local counts = upstream_result.stdout:gsub("\n", "")
+        ahead, behind = counts:match("(%d+)%s+(%d+)")
+        ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
+      end
       
-      if result.code == 0 and result.stdout then
-        for line in result.stdout:gmatch("[^\r\n]+") do
-          if line and #line >= 4 then -- Ensure line has at least status + space + filename
-            local status = line:sub(1, 2)
-            local file = line:sub(4)
-            
-            -- Skip empty filenames and directories (ending with /)
-            if file and file:match("%S") and not file:match("/$") then
-              table.insert(files, {
-                status = status,
-                file = file,
-                full_path = repo_path .. "/" .. file,
-              })
+      -- Then get file status
+      vim.system(cmd, { cwd = repo_path }, function(result)
+        local files = {}
+        
+        if result.code == 0 and result.stdout then
+          for line in result.stdout:gmatch("[^\r\n]+") do
+            if line and #line >= 4 then -- Ensure line has at least status + space + filename
+              local status = line:sub(1, 2)
+              local file = line:sub(4)
+              
+              -- Skip empty filenames and directories (ending with /)
+              if file and file:match("%S") and not file:match("/$") then
+                table.insert(files, {
+                  status = status,
+                  file = file,
+                  full_path = repo_path .. "/" .. file,
+                })
+              end
             end
           end
         end
-      end
-      
-      -- Sort files by path for stable order
-      table.sort(files, function(a, b) return a.file < b.file end)
-      
-      vim.schedule(function()
-        callback(files, branch)
+        
+        -- Sort files by path for stable order
+        table.sort(files, function(a, b) return a.file < b.file end)
+        
+        vim.schedule(function()
+          callback(files, branch, ahead, behind)
+        end)
       end)
     end)
   end)
