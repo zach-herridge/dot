@@ -6,5 +6,6 @@ source ~/dot/zsh/completions.zsh
 source ~/dot/zsh/modern-zsh.zsh
 source ~/dot/zsh/aliases.zsh
 source ~/dot/zsh/functions.zsh
+source ~/dot/zsh/aws-accounts.zsh
 
 eval "$(starship init zsh)"

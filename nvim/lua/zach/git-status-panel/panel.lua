@@ -302,7 +302,7 @@ function M.open_file()
     if data.is_project then
       -- Open project directory in Oil in the previous window
       vim.cmd("wincmd p") -- Go to previous window
-      require("oil").open(data.repo_path)
+      require("zach.plugins.flyer").open(data.repo_path)
     else
       -- Open file normally
       vim.cmd("wincmd p") -- Go to previous window
@@ -369,25 +369,25 @@ end
 function M.revert_unstaged()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
-  
+
   if not data or not data.repo_path then
     return
   end
-  
+
   -- Check if file has unstaged changes
   if data.status:sub(2, 2) == " " then
     vim.notify("No unstaged changes to revert for " .. data.file, vim.log.levels.WARN)
     return
   end
-  
+
   -- Confirmation prompt
   local choice = vim.fn.confirm("Revert unstaged changes to " .. data.file .. "?", "&Yes\n&No", 2)
   if choice ~= 1 then
     return
   end
-  
+
   local cmd = { "git", "checkout", "--", data.file }
-  
+
   vim.system(cmd, { cwd = data.repo_path }, function(result)
     vim.schedule(function()
       if result.code == 0 then
