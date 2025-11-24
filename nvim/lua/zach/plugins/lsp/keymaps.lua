@@ -32,7 +32,7 @@ function M.on_attach(client, bufnr)
         -- Add specific KAPT generated sources if they exist
         local project_root = vim.fs.dirname(bemol_dir)
         local kapt_dir = project_root .. '/build/PortageServiceCore/PortageServiceCore-1.0/AL2_x86_64/DEV.STD.PTHREAD/build/private/gradle/generated/source/kapt/main'
-        if vim.fn.isdirectory(kapt_dir) == 1 then
+        if vim.fn.isdirectory(kapt_dir) == 1 and false then
           vim.lsp.buf.add_workspace_folder(kapt_dir)
         end
 

@@ -101,7 +101,12 @@ keymap.set("n", "<leader>op", function()
 end, { desc = "Open package under cursor" })
 
 keymap.set("n", "<leader>oe", function()
-  local dir = vim.fn.expand("%:p:h")
+  local dir
+  if vim.bo.filetype == "oil" then
+    dir = require("oil").get_current_dir()
+  else
+    dir = vim.fn.expand("%:p:h")
+  end
   vim.fn.system("open '" .. dir .. "'")
 end, { desc = "Open explorer" })
 keymap.set("n", "<leader>om", "<cmd>Mason<cr>", { desc = "Open mason" })

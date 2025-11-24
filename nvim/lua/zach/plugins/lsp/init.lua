@@ -9,22 +9,11 @@ return {
     },
     opts = {
       servers = {
-        -- Servers will be added by language files
+        kotlin_lsp = true,
+        kotlin_language_server = false,
       },
     },
     config = function(_, opts)
-      local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
-      vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
-
-      local lspconfig = require("lspconfig")
-      local keymaps = require("zach.plugins.lsp.keymaps")
-
-      for server, server_opts in pairs(opts.servers) do
-        if lspconfig[server] then
-          server_opts.on_attach = keymaps.on_attach
-          lspconfig[server].setup(server_opts)
-        end
-      end
     end,
   },
 }

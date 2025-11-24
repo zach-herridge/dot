@@ -6,7 +6,7 @@ return {
     ensure_installed = {
       "vtsls",
       "lua-language-server",
-      "kotlin-language-server",
+      "kotlin_lsp",
     },
   },
   config = function(_, opts)

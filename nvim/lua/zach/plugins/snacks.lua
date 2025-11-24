@@ -15,6 +15,7 @@ return {
     git = { enabled = true },
     picker = {
       enabled = true,
+      hidden = true,
       win = {
         input = {
           keys = {
@@ -62,6 +63,9 @@ return {
     { "<leader>fg", function() 
       require("zach.utils.git").git_picker("grep", { fallback = "grep" })
     end, desc = "Find string in git files" },
+    { "<leader>fG", function() 
+      Snacks.picker.grep()
+    end, desc = "Find string in git files" },
     { "<leader>fw", function() 
       require("zach.utils.git").git_picker("grep_word", { fallback = "grep_word" })
     end, desc = "Find word under cursor in git files" },
@@ -71,6 +75,23 @@ return {
     { "<leader>cs", function() Snacks.picker.spelling() end, desc = "Get spelling help" },
 
     { "<leader>fH", function() Snacks.picker.help() end, desc = "Find help docs" },
+    { "<leader>os", function() 
+      local scratch_dir = vim.fn.expand("~/scratch")
+      
+      Snacks.picker.files({
+        name = "scratch",
+        cwd = scratch_dir,
+        hidden = false,
+      })
+    end, desc = "Open scratch files" },
+    { "<leader>oS", function()
+      local scratch_dir = vim.fn.expand("~/scratch")
+      local name = vim.fn.input("New scratch file: ")
+      if name ~= "" then
+        if not name:match("%.") then name = name .. ".md" end
+        vim.cmd("edit " .. scratch_dir .. "/" .. name)
+      end
+    end, desc = "Create new scratch file" },
 
     { "gd", function() Snacks.picker.lsp_definitions() end, desc = "Go to definition" },
     { "gr", function() Snacks.picker.lsp_references() end, desc = "Go to references" },

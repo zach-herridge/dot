@@ -15,6 +15,7 @@ function ws_clean() {
         local target_dir="$workplace_dir/$project_dir"
         
         echo "Running clean from: $target_dir"
+        (cd "$target_dir" && rm -rf node_modules build dist env)
         (cd "$target_dir" && find . -maxdepth 4 -name ".git" -type d | while read gitdir; do
             repo=$(dirname "$gitdir")
             echo -e "\n=== $target_dir/$repo ==="
