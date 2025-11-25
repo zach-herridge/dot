@@ -29,6 +29,12 @@ return {
           enabled = true,
         },
       },
+      list = {
+        selection = {
+          preselect = false,
+          auto_insert = false,
+        }
+      },
       menu = {
         draw = {
           treesitter = { "lsp" },

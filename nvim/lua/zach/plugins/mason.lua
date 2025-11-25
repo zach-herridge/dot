@@ -6,7 +6,7 @@ return {
     ensure_installed = {
       "vtsls",
       "lua-language-server",
-      "kotlin_lsp",
+      "kotlin-lsp", -- This matches what's already installed
     },
   },
   config = function(_, opts)
