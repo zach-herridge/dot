@@ -52,21 +52,21 @@ return {
     end, desc = "Lazygit" },
 
     { "<leader>fd", function() Snacks.picker.files({ cwd = vim.fn.expand('%:p:h') }) end, desc = "Find in file dir" },
-    { "<leader><space>", function() 
-      require("zach.utils.git").git_picker("git_files", {
+    { "<leader><space>", function()
+      require("zach.utils.git").git_picker("files", {
         matcher = { frecency = true, cwd_bonus = true, sort_empty = true },
-        fallback = "files"
+        hidden = true,
       })
-    end, desc = "Find git files"},
+    end, desc = "Find files"},
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find files" },
     { "<leader>fr", function() Snacks.picker.recent() end, desc = "Find recent files" },
-    { "<leader>fg", function() 
+    { "<leader>fg", function()
       require("zach.utils.git").git_picker("grep", { fallback = "grep" })
     end, desc = "Find string in git files" },
-    { "<leader>fG", function() 
+    { "<leader>fG", function()
       Snacks.picker.grep()
     end, desc = "Find string in git files" },
-    { "<leader>fw", function() 
+    { "<leader>fw", function()
       require("zach.utils.git").git_picker("grep_word", { fallback = "grep_word" })
     end, desc = "Find word under cursor in git files" },
     { "<leader>fs", function() Snacks.picker.lines() end, desc = "Find string in current file" },
@@ -75,9 +75,9 @@ return {
     { "<leader>cs", function() Snacks.picker.spelling() end, desc = "Get spelling help" },
 
     { "<leader>fH", function() Snacks.picker.help() end, desc = "Find help docs" },
-    { "<leader>os", function() 
+    { "<leader>os", function()
       local scratch_dir = vim.fn.expand("~/scratch")
-      
+
       Snacks.picker.files({
         name = "scratch",
         cwd = scratch_dir,
@@ -105,6 +105,13 @@ return {
     -- Update picker sources
     opts.picker = opts.picker or {}
     opts.picker.sources = {
+      git_files_all = {
+        name = "git_files_all",
+        cmd = "git",
+        args = function()
+          return { "ls-files", "--cached", "--others", "--exclude-standard" }
+        end,
+      },
       grep = {
         cmd = "rg",
         args = rg.make_args(),

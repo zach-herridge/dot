@@ -32,6 +32,7 @@ M.base_args = {
   "--color=never",
   "--smart-case",
   "--hidden",
+  "--no-require-git",
 }
 
 -- Merge base args with ignores

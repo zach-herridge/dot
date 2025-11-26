@@ -93,7 +93,7 @@ end
 function M.git_picker(source, opts)
   opts = opts or {}
   local repos = M.find_all_git_roots()
-  
+
   if #repos == 1 then
     return Snacks.picker[source](vim.tbl_extend("force", { cwd = repos[1] }, opts))
   elseif #repos > 1 then
