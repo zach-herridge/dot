@@ -1,5 +1,3 @@
--- Bright stars extracted from Yale Bright Star Catalog
--- Total stars with magnitude <= 4.5: 763
 local stars = {
   {name = "9Alp CMa", ra = 101.29, dec = -16.72, mag = -1.46},
   {name = "Alp Car", ra = 95.99, dec = -52.70, mag = -0.72},

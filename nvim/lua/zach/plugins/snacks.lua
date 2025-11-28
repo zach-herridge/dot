@@ -102,7 +102,6 @@ return {
   config = function(_, opts)
     local rg = require("zach.utils.ripgrep")
 
-    -- Update picker sources
     opts.picker = opts.picker or {}
     opts.picker.sources = {
       git_files_all = {

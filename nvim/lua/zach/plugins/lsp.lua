@@ -4,37 +4,31 @@ return {
     event = { "BufReadPre", "BufNewFile" },
     dependencies = { "mason-org/mason.nvim" },
     config = function()
-      -- Create capabilities for blink.cmp
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities.textDocument.completion.completionItem.snippetSupport = true
       capabilities.textDocument.completion.completionItem.resolveSupport = {
         properties = { 'documentation', 'detail', 'additionalTextEdits' }
       }
 
-      -- Global LSP settings
       vim.lsp.config('*', {
         capabilities = capabilities,
         root_markers = { '.git' },
       })
 
-      -- Get Mason bin path
       local mason_bin = vim.fn.stdpath("data") .. "/mason/bin/"
 
-      -- Kotlin LSP (modern official server)
       vim.lsp.config('kotlin_lsp', {
         cmd = { mason_bin .. 'kotlin-lsp', '--stdio' },
         filetypes = { 'kotlin' },
         root_markers = { 'settings.gradle', 'settings.gradle.kts', 'build.gradle', 'build.gradle.kts' },
       })
 
-      -- TypeScript LSP (using vtsls from Mason)
       vim.lsp.config('vtsls', {
         cmd = { mason_bin .. 'vtsls', '--stdio' },
         filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
         root_markers = { 'package.json', 'tsconfig.json', 'jsconfig.json' },
       })
 
-      -- Lua LSP
       vim.lsp.config('lua_ls', {
         cmd = { mason_bin .. 'lua-language-server' },
         filetypes = { 'lua' },
@@ -50,10 +44,14 @@ return {
         },
       })
 
-      -- Enable all configs
-      vim.lsp.enable({ 'kotlin_lsp', 'vtsls', 'lua_ls' })
+      vim.lsp.config('pyright', {
+        cmd = { mason_bin .. 'pyright-langserver', '--stdio' },
+        filetypes = { 'python' },
+        root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile' },
+      })
 
-      -- Keymaps and attach logic
+      vim.lsp.enable({ 'kotlin_lsp', 'vtsls', 'lua_ls', 'pyright' })
+
       local bemol_loaded = {}
       vim.api.nvim_create_autocmd('LspAttach', {
         callback = function(args)
@@ -61,7 +59,6 @@ return {
           local bufnr = args.buf
           local opts = { buffer = bufnr, silent = true }
 
-          -- Keymaps
           vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
           vim.keymap.set("n", "<leader>ck", vim.lsp.buf.signature_help, opts)
           vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
@@ -71,12 +68,10 @@ return {
             vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
           end, opts)
 
-          -- Enable inlay hints if supported
           if client.supports_method and client.supports_method("textDocument/inlayHint") then
             vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
           end
 
-          -- Bemol workspace folders (Amazon development)
           if not bemol_loaded[client.id] then
             local bemol_dir = vim.fs.find({ '.bemol' }, { upward = true, type = 'directory' })[1]
             if bemol_dir then

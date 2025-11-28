@@ -7,6 +7,7 @@ return {
       "vtsls",
       "lua-language-server",
       "kotlin-lsp", -- This matches what's already installed
+      "pyright",
     },
   },
   config = function(_, opts)
