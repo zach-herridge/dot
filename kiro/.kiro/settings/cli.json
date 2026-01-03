@@ -1,0 +1,8 @@
+{
+  "chat.disableAutoCompaction": true,
+  "chat.editMode": true,
+  "chat.enableContextUsageIndicator": true,
+  "chat.enableKnowledge": true,
+  "chat.enableThinking": false,
+  "mcp.loadedBefore": true
+}

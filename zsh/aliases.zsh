@@ -17,3 +17,5 @@ alias view_disk="dua i"
 alias view_cpu="btop"
 
 alias reload="source ~/dot/zsh/zshrc && tmux source-file ~/.tmux.conf"
+
+alias arcc-local="node /Users/zachhe/workplace/ArccServiceBackend/src/ARCCCliCore/dist/cli/index.js"

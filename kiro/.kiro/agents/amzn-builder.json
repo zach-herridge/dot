@@ -1,0 +1,33 @@
+{
+  "name": "amzn-builder",
+  "description": "[DO NOT UPDATE] Amazon development tools agent with builder-mcp integration for code generation, testing, and build automation. Subsequent updates will overwrite this agent, copying is recommended.",
+  "mcpServers": {
+    "builder-mcp": {
+      "command": "builder-mcp",
+      "args": []
+    }
+  },
+  "tools": [
+    "@builtin",
+    "@builder-mcp"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "fs_write",
+    "ls",
+    "write",
+    "read",
+    "@builder-mcp/ReadInternalWebsites",
+    "@builder-mcp/WorkspaceSearch",
+    "@builder-mcp/InternalCodeSearch",
+    "@builder-mcp/InternalSearch",
+    "@builder-mcp/TicketingReadActions",
+    "@builder-mcp/TaskeiGetRooms",
+    "@builder-mcp/TaskeiGetTask",
+    "@builder-mcp/TaskeiListTasks"
+  ],
+  "resources": [
+    "file://~/.aws/amazonq/resources/amazon-builder-context.md"
+  ],
+  "useLegacyMcpJson": false
+}

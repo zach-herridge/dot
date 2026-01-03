@@ -26,3 +26,8 @@ nvim/plugin/packer_compiled.lua
 .env.local
 
 AWSCLIV2*
+
+# Kiro temporary files
+kiro/.kiro/tmp/
+kiro/.kiro/.cli_bash_history
+kiro/.kiro/extensions/

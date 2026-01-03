@@ -1,0 +1,60 @@
+{
+  "mcpServers": {
+    "builder-mcp": {
+      "command": "/Users/zachhe/.toolbox/bin/builder-mcp",
+      "args": [],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [
+        "ReadRemoteTestRun",
+        "RunIntegrationTest",
+        "ReadInternalWebsites",
+        "InternalCodeSearch",
+        "InternalSearch",
+        "GetPipelineDetails",
+        "GetPipelineHealth"
+      ],
+      "disabledTools": [
+        "ApolloReadActions",
+        "BarristerEvaluationWorkflow",
+        "BrazilBuildAnalyzerTool",
+        "BrazilPackageBuilderAnalyzerTool",
+        "BrazilWorkspace",
+        "CRRevisionCreator",
+        "CheckFilepathForCAZ",
+        "CrCheckout",
+        "CreatePackage",
+        "Delegate",
+        "GKAnalyzeVersionSet",
+        "GetDogmaClassification",
+        "GetDogmaRecommendations",
+        "GetPipelinesRelevantToUser",
+        "GetPolicyEngineDashboard",
+        "GetPolicyEngineRisk",
+        "GetSasCampaigns",
+        "GetSasRisks",
+        "GetSoftwareRecommendation",
+        "MechanicDescribeTool",
+        "MechanicDiscoverTools",
+        "MechanicRunTool",
+        "MechanicSetUserInput",
+        "OncallReadActions",
+        "QuipEditor",
+        "SearchAcronymCentral",
+        "SearchSoftwareRecommendations",
+        "SimAddComment",
+        "TaskeiCreateTask",
+        "TaskeiGetRoomResources",
+        "TaskeiGetRooms",
+        "TaskeiGetTask",
+        "TaskeiListTasks",
+        "TaskeiUpdateTask",
+        "ThirdPartyAnalysisGateway",
+        "TicketingReadActions",
+        "TicketingWriteActions",
+        "WorkspaceGitDetails",
+        "WorkspaceSearch"
+      ]
+    }
+  }
+}

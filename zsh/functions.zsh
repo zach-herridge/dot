@@ -40,3 +40,27 @@ tmux-scrollback() {
 scrollback() {
     nvim -c 'normal! G' =(tmux capture-pane -pS -)
 }
+
+# Smart kitty tab title based on workplace projects
+_kitty_smart_tab_title() {
+    [[ -z "$KITTY_WINDOW_ID" ]] && return
+    
+    local tab_title=""
+    local json=$(kitty @ ls 2>/dev/null) || return
+    
+    # Find workplace project from any window in current tab
+    tab_title=$(echo "$json" | jq -r --arg wid "$KITTY_WINDOW_ID" '
+        .[] | .tabs[] | select(.windows[] | .id == ($wid | tonumber)) |
+        .windows[].cwd | select(test(".*/workplace/[^/]+")) |
+        capture(".*/workplace/(?<proj>[^/]+)") | .proj
+    ' | head -1)
+    
+    # Fallback to current directory name if no workplace found
+    [[ -z "$tab_title" ]] && tab_title="${PWD##*/}"
+    
+    kitty @ set-tab-title "$tab_title" 2>/dev/null
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd _kitty_smart_tab_title
+_kitty_smart_tab_title  # Run once on shell start

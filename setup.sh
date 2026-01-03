@@ -22,7 +22,7 @@ mkdir -p ~/dot/zsh
 stow .
 
 echo "Installing tools via Homebrew..."
-brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty zsh-autosuggestions zsh-syntax-highlighting astroterm imagemagick
+brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty kitty zsh-autosuggestions zsh-syntax-highlighting astroterm imagemagick
 brew install --HEAD neovim
 
 if [ ! -d ~/.tmux/plugins/tpm ]; then
@@ -37,6 +37,9 @@ if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
 fi
 
 stow .
+
+echo "Setting up Kiro configuration..."
+stow --target=$HOME kiro
 
 echo "Creating shell configuration symlinks..."
 ln -sf ~/dot/zsh/zshrc ~/.zshrc
