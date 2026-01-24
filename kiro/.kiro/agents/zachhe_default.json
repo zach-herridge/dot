@@ -13,6 +13,7 @@
   ],
   "allowedTools": [
     "fs_read",
+    "ls",
     "fs_write",
     "grep",
     "glob",

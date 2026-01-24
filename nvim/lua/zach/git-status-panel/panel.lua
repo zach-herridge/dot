@@ -98,17 +98,21 @@ function M.setup_keymaps()
   vim.keymap.set("n", "<CR>", M.open_file, opts)
   vim.keymap.set("n", "o", M.open_file, opts)
 
-  -- Stage/unstage file
+  -- Stage/unstage file (normal and visual)
   vim.keymap.set("n", "<Tab>", M.toggle_stage, opts)
+  vim.keymap.set("v", "<Tab>", ":<C-u>lua require('zach.git-status-panel.panel').toggle_stage_visual()<CR>", opts)
 
-  -- Revert changes
+  -- Revert changes (normal and visual)
   vim.keymap.set("n", "r", M.revert_file, opts)
+  vim.keymap.set("v", "r", ":<C-u>lua require('zach.git-status-panel.panel').revert_file_visual()<CR>", opts)
 
-  -- Revert unstaged changes only
+  -- Revert unstaged changes only (normal and visual)
   vim.keymap.set("n", "u", M.revert_unstaged, opts)
+  vim.keymap.set("v", "u", ":<C-u>lua require('zach.git-status-panel.panel').revert_unstaged_visual()<CR>", opts)
 
-  -- Delete file
+  -- Delete file (normal and visual)
   vim.keymap.set("n", "d", M.delete_file, opts)
+  vim.keymap.set("v", "d", ":<C-u>lua require('zach.git-status-panel.panel').delete_file_visual()<CR>", opts)
 
   -- Show diff
   vim.keymap.set("n", "p", M.show_diff, opts)
@@ -227,8 +231,8 @@ function M.update(status_data, unstaged_only)
       })
     end
 
-    -- Highlight git status codes
-    if line:match("^[ MADR?]") then
+    -- Highlight git status codes (must be 2-char status followed by space)
+    if line:match("^[ MADR?][ MADR?] ") then
       local status = line:sub(1, 2)
       local hl_group = nil
 
@@ -338,6 +342,29 @@ function M.delete_file()
   end
 end
 
+function M.delete_file_visual()
+  local start_line = vim.fn.line("'<")
+  local end_line = vim.fn.line("'>")
+  local files_by_repo = get_files_in_range(start_line, end_line)
+
+  local all_files = {}
+  for _, files in pairs(files_by_repo) do
+    for _, data in ipairs(files) do
+      table.insert(all_files, data)
+    end
+  end
+
+  if #all_files == 0 then return end
+
+  local choice = vim.fn.confirm("Delete " .. #all_files .. " files?", "&Yes\n&No", 2)
+  if choice ~= 1 then return end
+
+  for _, data in ipairs(all_files) do
+    vim.fn.delete(data.full_path)
+  end
+  require("zach.git-status-panel").refresh()
+end
+
 function M.revert_file()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
@@ -363,6 +390,25 @@ function M.revert_file()
         vim.notify("Failed to revert " .. data.file .. ": " .. error_msg, vim.log.levels.ERROR)
       end
     end)
+  end)
+end
+
+function M.revert_file_visual()
+  local start_line = vim.fn.line("'<")
+  local end_line = vim.fn.line("'>")
+  local files_by_repo = get_files_in_range(start_line, end_line)
+
+  local total = 0
+  for _, files in pairs(files_by_repo) do total = total + #files end
+  if total == 0 then return end
+
+  local choice = vim.fn.confirm("Revert changes to " .. total .. " files?", "&Yes\n&No", 2)
+  if choice ~= 1 then return end
+
+  run_per_repo(files_by_repo, function(files)
+    local cmd = { "git", "checkout", "HEAD", "--" }
+    for _, data in ipairs(files) do table.insert(cmd, data.file) end
+    return cmd
   end)
 end
 
@@ -400,6 +446,71 @@ function M.revert_unstaged()
   end)
 end
 
+function M.revert_unstaged_visual()
+  local start_line = vim.fn.line("'<")
+  local end_line = vim.fn.line("'>")
+  local files_by_repo = get_files_in_range(start_line, end_line)
+
+  -- Filter to only files with unstaged changes
+  local filtered = {}
+  local total = 0
+  for repo_path, files in pairs(files_by_repo) do
+    for _, data in ipairs(files) do
+      if data.status:sub(2, 2) ~= " " then
+        filtered[repo_path] = filtered[repo_path] or {}
+        table.insert(filtered[repo_path], data)
+        total = total + 1
+      end
+    end
+  end
+
+  if total == 0 then
+    vim.notify("No unstaged changes to revert", vim.log.levels.WARN)
+    return
+  end
+
+  local choice = vim.fn.confirm("Revert unstaged changes to " .. total .. " files?", "&Yes\n&No", 2)
+  if choice ~= 1 then return end
+
+  run_per_repo(filtered, function(files)
+    local cmd = { "git", "checkout", "--" }
+    for _, data in ipairs(files) do table.insert(cmd, data.file) end
+    return cmd
+  end)
+end
+
+-- Helper: get files grouped by repo from a line range
+local function get_files_in_range(start_line, end_line)
+  local files_by_repo = {}
+  for line_num = start_line, end_line do
+    local data = line_data[line_num]
+    if data and not data.is_project and data.repo_path then
+      files_by_repo[data.repo_path] = files_by_repo[data.repo_path] or {}
+      table.insert(files_by_repo[data.repo_path], data)
+    end
+  end
+  return files_by_repo
+end
+
+-- Helper: run git commands per repo and refresh when all complete
+local function run_per_repo(files_by_repo, cmd_builder)
+  local repos = vim.tbl_keys(files_by_repo)
+  if #repos == 0 then return end
+
+  local pending = #repos
+  for repo_path, files in pairs(files_by_repo) do
+    local cmd = cmd_builder(files)
+    vim.system(cmd, { cwd = repo_path }, function(result)
+      vim.schedule(function()
+        pending = pending - 1
+        if pending == 0 then
+          require("zach.git-status-panel").refresh()
+        end
+      end)
+    end)
+  end
+end
+
 function M.toggle_stage()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
@@ -425,6 +536,62 @@ function M.toggle_stage()
       end
     end)
   end)
+end
+
+function M.toggle_stage_visual()
+  local start_line = vim.fn.line("'<")
+  local end_line = vim.fn.line("'>")
+  local files_by_repo = get_files_in_range(start_line, end_line)
+
+  -- Separate into stage and unstage groups per repo
+  local to_stage = {}
+  local to_unstage = {}
+
+  for repo_path, files in pairs(files_by_repo) do
+    for _, data in ipairs(files) do
+      if data.status:sub(2, 2) ~= " " then
+        to_stage[repo_path] = to_stage[repo_path] or {}
+        table.insert(to_stage[repo_path], data.file)
+      else
+        to_unstage[repo_path] = to_unstage[repo_path] or {}
+        table.insert(to_unstage[repo_path], data.file)
+      end
+    end
+  end
+
+  local all_repos = {}
+  for repo in pairs(to_stage) do all_repos[repo] = true end
+  for repo in pairs(to_unstage) do all_repos[repo] = true end
+
+  local pending = vim.tbl_count(all_repos)
+  if pending == 0 then return end
+
+  local function on_done()
+    pending = pending - 1
+    if pending == 0 then
+      require("zach.git-status-panel").refresh()
+    end
+  end
+
+  for repo_path in pairs(all_repos) do
+    local stage_files = to_stage[repo_path]
+    local unstage_files = to_unstage[repo_path]
+    local repo_ops = 0
+    if stage_files then repo_ops = repo_ops + 1 end
+    if unstage_files then repo_ops = repo_ops + 1 end
+
+    -- Adjust pending for repos with both operations
+    if repo_ops == 2 then pending = pending + 1 end
+
+    if stage_files then
+      local cmd = { "git", "add", unpack(stage_files) }
+      vim.system(cmd, { cwd = repo_path }, function() vim.schedule(on_done) end)
+    end
+    if unstage_files then
+      local cmd = { "git", "reset", "HEAD", unpack(unstage_files) }
+      vim.system(cmd, { cwd = repo_path }, function() vim.schedule(on_done) end)
+    end
+  end
 end
 
 function M.show_diff()

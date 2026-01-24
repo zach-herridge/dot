@@ -1,8 +1,9 @@
 function inrepos() {
-    find . -maxdepth 4 -name ".git" -type d | while read gitdir; do
+    local depth="${INREPOS_DEPTH:-3}"
+    find . -maxdepth "$depth" -name ".git" -type d | while read gitdir; do
         repo=$(dirname "$gitdir")
         echo -e "\n=== $repo ==="
-        (cd "$repo" && "$@")
+        (cd "$repo" && eval "$@")
     done
 }
 
@@ -45,18 +46,23 @@ scrollback() {
 _kitty_smart_tab_title() {
     [[ -z "$KITTY_WINDOW_ID" ]] && return
     
-    local tab_title=""
-    local json=$(kitty @ ls 2>/dev/null) || return
+    local tab_title
     
-    # Find workplace project from any window in current tab
-    tab_title=$(echo "$json" | jq -r --arg wid "$KITTY_WINDOW_ID" '
-        .[] | .tabs[] | select(.windows[] | .id == ($wid | tonumber)) |
-        .windows[].cwd | select(test(".*/workplace/[^/]+")) |
-        capture(".*/workplace/(?<proj>[^/]+)") | .proj
-    ' | head -1)
-    
-    # Fallback to current directory name if no workplace found
-    [[ -z "$tab_title" ]] && tab_title="${PWD##*/}"
+    # Fast path: current window is in a project subdirectory (not root)
+    if [[ "$PWD" =~ .*/workplace/([^/]+)/.+ ]]; then
+        tab_title="${match[1]}"
+    else
+        # Check other windows for project subdirectories
+        local json=$(kitty @ ls 2>/dev/null)
+        [[ -n "$json" ]] && tab_title=$(echo "$json" | jq -r --arg wid "$KITTY_WINDOW_ID" '
+            .[] | .tabs[] | select(.windows[] | .id == ($wid | tonumber)) |
+            .windows[].cwd | select(test(".*/workplace/[^/]+/.+")) |
+            capture(".*/workplace/(?<proj>[^/]+)") | .proj
+        ' 2>/dev/null | head -1)
+        
+        # Fallback: current directory name
+        [[ -z "$tab_title" ]] && tab_title="${PWD##*/}"
+    fi
     
     kitty @ set-tab-title "$tab_title" 2>/dev/null
 }
@@ -64,3 +70,20 @@ _kitty_smart_tab_title() {
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd _kitty_smart_tab_title
 _kitty_smart_tab_title  # Run once on shell start
+
+# Unified branch view across multi-repo workspace (sorted by most recent activity)
+ws_branches() {
+    local dir="${1:-$(pwd)}"
+    find "$dir" -maxdepth 1 -type d -exec test -d {}/.git \; -print 2>/dev/null | while read r; do
+        git -C "$r" for-each-ref --format='%(committerdate:iso)|%(refname:short)' refs/heads 2>/dev/null
+    done | sort -t'|' -k2,2 -k1,1r | awk -F'|' '!seen[$2]++ {print $1"|"$2}' | sort -r
+}
+
+# Rebase branch onto mainline across all repos
+rebase_mainline() {
+    local branch="${1:-uat_v5}"
+    inrepos git checkout mainline
+    inrepos git pull
+    inrepos git checkout "$branch"
+    inrepos git rebase mainline
+}

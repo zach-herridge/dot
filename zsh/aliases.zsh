@@ -16,6 +16,6 @@ alias q="kiro-cli"
 alias view_disk="dua i"
 alias view_cpu="btop"
 
-alias reload="source ~/dot/zsh/zshrc && tmux source-file ~/.tmux.conf"
+alias reload="source ~/dot/zsh/zshrc"
 
-alias arcc-local="node /Users/zachhe/workplace/ArccServiceBackend/src/ARCCCliCore/dist/cli/index.js"
+alias arcc-local="node /Users/zachhe/workplace/ArccApp/src/ARCCCliCore/dist/cli/index.js"

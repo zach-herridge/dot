@@ -55,6 +55,23 @@
         "WorkspaceGitDetails",
         "WorkspaceSearch"
       ]
+    },
+    "arcc-cli": {
+      "command": "/Users/zachhe/workplace/ArccApp/src/ARCCCliCore/build/arcc-cli/arcc",
+      "args": [
+        "mcp",
+        "start"
+      ],
+      "env": {
+        "ARCC_NAMESPACES": "arcc::namespace:p-xrsc6wfg",
+        "ARCC_STAGE": "prod",
+        "ARCC_LOG_LEVEL": "debug"
+      },
+      "timeout": 120000,
+      "disabled": false,
+      "autoApprove": [
+        "search_arcc"
+      ]
     }
   }
 }

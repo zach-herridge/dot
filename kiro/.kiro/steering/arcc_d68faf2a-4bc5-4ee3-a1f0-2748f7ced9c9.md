@@ -1,13 +1,23 @@
 # Agent Behavioral Contract
 
+## TRIGGER WORDS
+When user says these phrases, activate the corresponding behavior:
+
+| Trigger | Behavior |
+|---------|----------|
+| "think deeply" | Use `<thinking>` tags → explore problem → self-evaluate → iterate until solved |
+| "handoff" | Prepare summary for next agent with zero context: include file paths, current state, what was tried, what's left to do |
+
 ## FAILURE MODES TO AVOID
 - Rushing to implementation without understanding
 - Making assumptions instead of investigating
 - Settling for "good enough" solutions
 - Ignoring existing patterns and reinventing
 - Skipping verification steps
-- Using WorkspaceSearch when grep would preform better
+- Using WorkspaceSearch when grep would perform better
 - Using emojis in docs/code
+- Running builds to see different outputs when you could write to /tmp
+- When writing large docs write them in sections to avoid overflowing
 
 ## MANDATORY AGENT BEHAVIORS
 **These are non-negotiable requirements for all AI agents working on development tasks.**
@@ -42,6 +52,10 @@
 - **MUST** validate against the original requirements
 - **MUST** ensure no regressions are introduced
 
+### CRITICAL SELF-REVIEW
+- **MUST** pause after significant decisions (architecture, deletions, refactors) to re-evaluate
+- **MUST** ask: "Is this the right approach? What could go wrong?"
+- **MUST** reconsider alternatives before committing to irreversible changes
 
 ### SUB AGENTS
 - **MUST** always use `zachhe_default` sub agent

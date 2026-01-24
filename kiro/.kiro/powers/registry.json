@@ -256,23 +256,6 @@
         "type": "registry"
       }
     },
-    "aurora-dsql": {
-      "name": "aurora-dsql",
-      "description": "PostgreSQL-compatible serverless distributed SQL database with Aurora DSQL - manage schemas, execute queries, and handle migrations with DSQL-specific constraints",
-      "author": "Rolf Koski",
-      "license": "",
-      "keywords": [],
-      "displayName": "Deploy a distributed SQL database on AWS",
-      "iconUrl": "https://prod.download.desktop.kiro.dev/powers/icons/power.png",
-      "repositoryUrl": "https://github.com/kirodotdev/powers/tree/main/aurora-dsql",
-      "repositoryCloneUrl": "git@github.com:kirodotdev/powers.git",
-      "pathInRepo": "aurora-dsql",
-      "repositoryBranch": "main",
-      "installed": false,
-      "source": {
-        "type": "registry"
-      }
-    },
     "amazon-aurora-postgresql": {
       "name": "amazon-aurora-postgresql",
       "description": "Build applications backed by Aurora PostgreSQL by leveraging Aurora PostgreSQL specific best practices.",
@@ -310,16 +293,16 @@
     "amazon-aurora-dsql": {
       "name": "amazon-aurora-dsql",
       "description": "Build and deploy a PostgreSQL-compatible serverless distributed SQL database with Aurora DSQL - manage schemas, execute queries, and handle migrations with DSQL-specific requirements.",
-      "displayName": "Build a database with Aurora DSQL",
       "author": "AWS",
+      "license": "",
+      "keywords": [],
+      "displayName": "Build a database with Aurora DSQL",
       "iconUrl": "https://prod.download.desktop.kiro.dev/powers/icons/amazon-aurora.png",
       "repositoryUrl": "https://github.com/awslabs/mcp/tree/main/src/aurora-dsql-mcp-server/kiro_power",
-      "license": "",
       "repositoryCloneUrl": "git@github.com:awslabs/mcp.git",
       "pathInRepo": "src/aurora-dsql-mcp-server/kiro_power",
       "repositoryBranch": "main",
       "installed": false,
-      "keywords": [],
       "source": {
         "type": "registry"
       }
@@ -328,8 +311,8 @@
   "repoSources": {},
   "kiroRecommendedRepo": {
     "url": "https://prod.download.desktop.kiro.dev/powers/default_registry.json",
-    "lastFetch": "2025-12-31T16:02:17.532Z",
-    "powerCount": 19
+    "lastFetch": "2026-01-22T17:14:41.882Z",
+    "powerCount": 18
   },
-  "lastUpdated": "2025-12-31T16:02:17.533Z"
+  "lastUpdated": "2026-01-22T17:14:41.883Z"
 }

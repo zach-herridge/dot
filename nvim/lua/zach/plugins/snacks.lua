@@ -64,11 +64,18 @@ return {
       require("zach.utils.git").git_picker("grep", { fallback = "grep" })
     end, desc = "Find string in git files" },
     { "<leader>fG", function()
-      Snacks.picker.grep()
-    end, desc = "Find string in git files" },
+      Snacks.picker.grep({
+        hidden = true,
+        ignored = true,
+        args = { "--no-ignore" },
+      })
+    end, desc = "Find string (all files)" },
     { "<leader>fw", function()
       require("zach.utils.git").git_picker("grep_word", { fallback = "grep_word" })
     end, desc = "Find word under cursor in git files" },
+    { "<leader>fg", function()
+      Snacks.picker.grep({ search = Snacks.picker.util.visual() })
+    end, mode = "v", desc = "Grep selection" },
     { "<leader>fs", function() Snacks.picker.lines() end, desc = "Find string in current file" },
     { "<leader>fu", function() Snacks.picker.undo() end, desc = "Find undo states" },
     { "<leader>fX", function() Snacks.picker.diagnostics() end, desc = "Find diagnostics" },
@@ -119,6 +126,7 @@ return {
       grep_word = {
         cmd = "rg",
         args = rg.make_args({"--word-regexp"}),
+        parse_args = true,
       },
     }
 
