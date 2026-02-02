@@ -27,7 +27,8 @@ nvim/plugin/packer_compiled.lua
 
 AWSCLIV2*
 
-# Kiro temporary files
-kiro/.kiro/tmp/
-kiro/.kiro/.cli_bash_history
-kiro/.kiro/extensions/
+# Kiro - only track cli.json
+kiro/.kiro/*
+!kiro/.kiro/settings/
+kiro/.kiro/settings/*
+!kiro/.kiro/settings/cli.json
