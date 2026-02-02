@@ -559,6 +559,12 @@ function M.toggle_stage_visual()
     end
   end
 
+  -- If there are unstaged files, only stage them (don't unstage others)
+  local has_unstaged = vim.tbl_count(to_stage) > 0
+  if has_unstaged then
+    to_unstage = {}
+  end
+
   local all_repos = {}
   for repo in pairs(to_stage) do all_repos[repo] = true end
   for repo in pairs(to_unstage) do all_repos[repo] = true end

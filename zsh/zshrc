@@ -6,6 +6,7 @@ source ~/dot/zsh/completions.zsh
 source ~/dot/zsh/modern-zsh.zsh
 source ~/dot/zsh/aliases.zsh
 source ~/dot/zsh/functions.zsh
+source ~/dot/zsh/ws.zsh
 source ~/dot/zsh/aws-accounts.zsh
 source ~/dot/zsh/terminal-title.zsh
 

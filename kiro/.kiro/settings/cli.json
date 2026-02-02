@@ -3,7 +3,7 @@
   "chat.disableAutoCompaction": true,
   "chat.editMode": true,
   "chat.enableContextUsageIndicator": true,
-  "chat.enableKnowledge": true,
+  "chat.enableKnowledge": false,
   "chat.enableThinking": false,
   "compaction.excludeContextWindowPercent": 15,
   "compaction.excludeMessages": 35,
