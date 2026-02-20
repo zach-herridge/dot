@@ -50,5 +50,6 @@ return {
     { "<leader>gS", "<cmd>GitStatusPanelUnstaged<cr>", desc = "Toggle Git Status Panel (Unstaged)" },
     { "<leader>gJ", function() require("zach.git-status-panel").jump_to_next_file() end, desc = "Jump to next git file" },
     { "<leader>gK", function() require("zach.git-status-panel").jump_to_prev_file() end, desc = "Jump to previous git file" },
+    { "<leader>fw", function() require("zach.git-status-panel").pick_files() end, desc = "Find git changed files" },
   },
 }

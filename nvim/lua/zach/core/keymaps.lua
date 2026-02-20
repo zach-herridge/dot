@@ -135,3 +135,11 @@ end, { desc = "LSP format" })
 keymap.set("n", "<leader>cq", function()
   require('zach.cloudwatch').execute_query()
 end, { desc = "Execute CloudWatch query" })
+
+local function set_cd_target()
+  local dir = vim.bo.filetype == "oil" and require("oil").get_current_dir() or vim.fn.expand("%:p:h")
+  vim.fn.writefile({dir}, "/tmp/nvim_cd_target")
+end
+
+keymap.set("n", "<leader>kd", set_cd_target, { desc = "Set shell cd target" })
+keymap.set("n", "<leader>kD", function() set_cd_target() vim.cmd("qa") end, { desc = "Set shell cd target and exit" })

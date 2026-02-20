@@ -1,5 +1,5 @@
 {
-  "chat.defaultModel": "claude-opus-4.5",
+  "chat.defaultModel": "claude-opus-4.6",
   "chat.disableAutoCompaction": true,
   "chat.editMode": true,
   "chat.enableContextUsageIndicator": true,

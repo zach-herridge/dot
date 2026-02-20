@@ -70,9 +70,6 @@ return {
         args = { "--no-ignore" },
       })
     end, desc = "Find string (all files)" },
-    { "<leader>fw", function()
-      require("zach.utils.git").git_picker("grep_word", { fallback = "grep_word" })
-    end, desc = "Find word under cursor in git files" },
     { "<leader>fg", function()
       Snacks.picker.grep({ search = Snacks.picker.util.visual() })
     end, mode = "v", desc = "Grep selection" },

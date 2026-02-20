@@ -87,4 +87,8 @@ function M.jump_to_prev_file()
   panel.jump_to_prev_file()
 end
 
+function M.pick_files()
+  panel.pick_files()
+end
+
 return M

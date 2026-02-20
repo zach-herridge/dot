@@ -4,6 +4,81 @@ local buf = nil
 local win = nil
 local line_data = {} -- Store complete file data by line number
 
+-- Helper: get files grouped by repo from a line range
+local function get_files_in_range(start_line, end_line)
+  local files_by_repo = {}
+  for line_num = start_line, end_line do
+    local data = line_data[line_num]
+    if data and not data.is_project and data.repo_path then
+      files_by_repo[data.repo_path] = files_by_repo[data.repo_path] or {}
+      table.insert(files_by_repo[data.repo_path], data)
+    end
+  end
+  return files_by_repo
+end
+
+-- Helper: run git commands per repo and refresh when all complete
+local function run_per_repo(files_by_repo, cmd_builder)
+  local repos = vim.tbl_keys(files_by_repo)
+  if #repos == 0 then return end
+
+  local pending = #repos
+  for repo_path, files in pairs(files_by_repo) do
+    local cmd = cmd_builder(files)
+    vim.system(cmd, { cwd = repo_path }, function(result)
+      vim.schedule(function()
+        pending = pending - 1
+        if pending == 0 then
+          require("zach.git-status-panel").refresh()
+        end
+      end)
+    end)
+  end
+end
+
+-- Build display names, adding parent dirs only when needed to disambiguate
+function M.disambiguate_filenames(files, unstaged_only)
+  local display = {}
+  local by_basename = {}
+
+  -- Group files by basename
+  for _, f in ipairs(files) do
+    if not unstaged_only or f.status:sub(2, 2) ~= " " then
+      local basename = vim.fn.fnamemodify(f.file, ":t")
+      by_basename[basename] = by_basename[basename] or {}
+      table.insert(by_basename[basename], f.file)
+    end
+  end
+
+  -- Assign display names
+  for basename, paths in pairs(by_basename) do
+    if #paths == 1 then
+      display[paths[1]] = basename
+    else
+      -- Find minimum path segments needed to disambiguate
+      for _, path in ipairs(paths) do
+        local parts = vim.split(path, "/")
+        local name = basename
+        -- Add parent dirs until unique
+        for i = #parts - 1, 1, -1 do
+          name = parts[i] .. "/" .. name
+          local unique = true
+          for _, other in ipairs(paths) do
+            if other ~= path and other:sub(-#name) == name then
+              unique = false
+              break
+            end
+          end
+          if unique then break end
+        end
+        display[path] = name
+      end
+    end
+  end
+
+  return display
+end
+
 function M.is_open()
   return win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_buf_is_valid(buf)
 end
@@ -185,11 +260,13 @@ function M.update(status_data, unstaged_only)
 
       -- Show files if any exist
       if #repo_data.files > 0 then
-        for _, file_data in ipairs(repo_data.files) do
+        -- Build display names with disambiguation
+        local display_names = M.disambiguate_filenames(repo_data.files, unstaged_only)
+
+        for i, file_data in ipairs(repo_data.files) do
           -- Filter for unstaged changes if requested
           if not unstaged_only or file_data.status:sub(2, 2) ~= " " then
-            local filename = vim.fn.fnamemodify(file_data.file, ":t")
-            local line_text = file_data.status .. " " .. filename
+            local line_text = file_data.status .. " " .. display_names[file_data.file]
             table.insert(lines, line_text)
 
             -- Store complete file data for this line
@@ -479,38 +556,6 @@ function M.revert_unstaged_visual()
   end)
 end
 
--- Helper: get files grouped by repo from a line range
-local function get_files_in_range(start_line, end_line)
-  local files_by_repo = {}
-  for line_num = start_line, end_line do
-    local data = line_data[line_num]
-    if data and not data.is_project and data.repo_path then
-      files_by_repo[data.repo_path] = files_by_repo[data.repo_path] or {}
-      table.insert(files_by_repo[data.repo_path], data)
-    end
-  end
-  return files_by_repo
-end
-
--- Helper: run git commands per repo and refresh when all complete
-local function run_per_repo(files_by_repo, cmd_builder)
-  local repos = vim.tbl_keys(files_by_repo)
-  if #repos == 0 then return end
-
-  local pending = #repos
-  for repo_path, files in pairs(files_by_repo) do
-    local cmd = cmd_builder(files)
-    vim.system(cmd, { cwd = repo_path }, function(result)
-      vim.schedule(function()
-        pending = pending - 1
-        if pending == 0 then
-          require("zach.git-status-panel").refresh()
-        end
-      end)
-    end)
-  end
-end
-
 function M.toggle_stage()
   local line_num = vim.api.nvim_win_get_cursor(0)[1]
   local data = line_data[line_num]
@@ -644,14 +689,26 @@ function M.jump_to_next_file()
   local file_list = {}
 
   for line_num, data in pairs(line_data) do
-    table.insert(file_list, {line_num = line_num, path = data.file, full_path = data.full_path})
-    if data.file == relative_path then
-      current_index = #file_list
+    if not data.is_project then
+      table.insert(file_list, {line_num = line_num, path = data.file, full_path = data.full_path})
+      if data.file == relative_path then
+        current_index = #file_list
+      end
     end
   end
 
   -- Sort by line number
   table.sort(file_list, function(a, b) return a.line_num < b.line_num end)
+
+  -- Re-find current_index after sorting
+  if relative_path then
+    for i, f in ipairs(file_list) do
+      if f.path == relative_path then
+        current_index = i
+        break
+      end
+    end
+  end
 
   if current_index and current_index < #file_list then
     local next_file = file_list[current_index + 1]
@@ -672,14 +729,26 @@ function M.jump_to_prev_file()
   local file_list = {}
 
   for line_num, data in pairs(line_data) do
-    table.insert(file_list, {line_num = line_num, path = data.file, full_path = data.full_path})
-    if data.file == relative_path then
-      current_index = #file_list
+    if not data.is_project then
+      table.insert(file_list, {line_num = line_num, path = data.file, full_path = data.full_path})
+      if data.file == relative_path then
+        current_index = #file_list
+      end
     end
   end
 
   -- Sort by line number
   table.sort(file_list, function(a, b) return a.line_num < b.line_num end)
+
+  -- Re-find current_index after sorting
+  if relative_path then
+    for i, f in ipairs(file_list) do
+      if f.path == relative_path then
+        current_index = i
+        break
+      end
+    end
+  end
 
   if current_index and current_index > 1 then
     local prev_file = file_list[current_index - 1]
@@ -688,6 +757,79 @@ function M.jump_to_prev_file()
     -- If current file not in list or at beginning, go to last
     vim.cmd("edit " .. vim.fn.fnameescape(file_list[#file_list].full_path))
   end
+end
+
+function M.pick_files()
+  local git_module = require("zach.git-status-panel.git")
+  local repos = git_module.find_repos()
+
+  git_module.get_status_for_repos(repos, function(status_data)
+    local items = {}
+
+    for repo_name, repo_data in pairs(status_data) do
+      for _, file_data in ipairs(repo_data.files) do
+        table.insert(items, {
+          text = file_data.file,
+          file = file_data.full_path,
+          repo = repo_name,
+          status = file_data.status,
+        })
+      end
+    end
+
+    if #items == 0 then
+      vim.notify("No changed files", vim.log.levels.INFO)
+      return
+    end
+
+    Snacks.picker({
+      title = "Git Changes",
+      items = items,
+      format = function(item, picker)
+        local ret = {}
+        -- Git status with color
+        table.insert(ret, { item.status, M.status_hl(item.status) })
+        table.insert(ret, { " " })
+        -- File icon via mini.icons or nvim-web-devicons
+        local icon, hl = "", nil
+        local ok, icons = pcall(require, "mini.icons")
+        if ok then
+          icon, hl = icons.get("file", item.file)
+        else
+          ok, icons = pcall(require, "nvim-web-devicons")
+          if ok then
+            icon, hl = icons.get_icon(item.file, nil, { default = true })
+          end
+        end
+        table.insert(ret, { (icon or "") .. " ", hl })
+        -- Filename
+        local filename = vim.fn.fnamemodify(item.file, ":t")
+        local dir = vim.fn.fnamemodify(item.file, ":h")
+        table.insert(ret, { filename, M.status_hl(item.status) })
+        -- Directory path dimmed
+        if dir ~= "." then
+          table.insert(ret, { " " .. dir, "Comment" })
+        end
+        return ret
+      end,
+      preview = "file",
+      confirm = function(picker, item)
+        picker:close()
+        vim.cmd("edit " .. vim.fn.fnameescape(item.file))
+      end,
+    })
+  end)
+end
+
+function M.status_hl(status)
+  local first = status:sub(1, 1)
+  if first == "?" then return "GitStatusUntracked"
+  elseif first == "A" then return "GitStatusAdded"
+  elseif first == "D" then return "GitStatusDeleted"
+  elseif first == "R" then return "GitStatusRenamed"
+  elseif first == "M" or status:sub(2,2) == "M" then return "GitStatusModified"
+  end
+  return nil
 end
 
 function M.commit_staged()
@@ -721,7 +863,10 @@ function M.commit_staged()
           end
 
           -- Prompt for commit message
-          Snacks.input({
+          local input_fn = (Snacks and Snacks.input) or function(opts, cb)
+            vim.ui.input({ prompt = opts.prompt }, cb)
+          end
+          input_fn({
             prompt = "Commit message: ",
             title = "Git Commit (" .. #repos_with_staged .. " repos)",
           }, function(commit_msg)

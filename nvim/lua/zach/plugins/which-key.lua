@@ -30,6 +30,7 @@ return {
       { "<leader>o", group = "open" },
       { "<leader>t", group = "toggle/terminal" },
       { "<leader>r", group = "replace" },
+      { "<leader>m", group = "markdown" },
     },
   },
 }

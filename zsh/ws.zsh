@@ -4,6 +4,7 @@ ws() {
     case "$1" in
         "") _ws_help ;;
         clean) shift; _ws_clean "$@" ;;
+        prune) shift; _ws_prune "$@" ;;
         branches|br) shift; _ws_branches "$@" ;;
         status|st) shift; _ws_status "$@" ;;
         rebase) shift; _ws_rebase "$@" ;;
@@ -26,6 +27,7 @@ ws - workspace CLI
   ws ls             List packages
   ws diff           Show diffs across repos
   ws clean          Remove build artifacts
+  ws prune [-n]     Delete old local & remote branches (yours)
   ws branches|br    Show branches across repos  
   ws status|st      Show dirty repos
   ws rebase         Rebase all clean repos onto mainline
@@ -48,6 +50,8 @@ _ws_repos() {
 
 _ws_go() {
     [[ -z "$1" ]] && { _ws_help; return 1; }
+    local do_cd=false
+    [[ "$1" == "cd" ]] && { do_cd=true; shift; }
     local target="$1"; shift
     local root=$(_ws_root) || { echo "No workspace root found"; return 1; }
     local matches=($(find "$root/src" -maxdepth 1 -type d -iname "*$target*"))
@@ -57,8 +61,12 @@ _ws_go() {
         1) dir="${matches[1]}" ;;
         *) dir=$(printf '%s\n' "${matches[@]}" | fzf --height=10) || return 1 ;;
     esac
-    if [[ $# -eq 0 ]]; then cd "$dir" && echo "→ ${dir##*/}"
-    else echo "→ ${dir##*/}: $*"; (cd "$dir" && eval "$@"); fi
+    if $do_cd || [[ $# -eq 0 ]]; then
+        cd "$dir" && echo "→ ${dir##*/}"
+    else
+        echo "→ ${dir##*/}: $*"
+        (cd "$dir" && eval "$@")
+    fi
 }
 
 _ws_each() {
@@ -170,31 +178,76 @@ _ws_prep() {
         git -C "$r" commit -m "WIP: squashed for CR"
         
         # Generate commit message with kiro
-        local diff=$(git -C "$r" diff origin/mainline)
-        local prompt="Generate a git commit message for this diff. Output ONLY the commit message, nothing else. Format:
+        local diffstat=$(git -C "$r" diff origin/mainline --stat)
+        # Escape @ symbols to prevent kiro from expanding them as file references
+        local diff=$(git -C "$r" diff origin/mainline -- ':!package-lock.json' ':!*.lock' | head -300 | sed 's/@/AT/g')
+        local prompt="Generate a git commit message for this diff. Format:
 - Line 1: concise title (max 72 chars, imperative mood)
-- Line 2: blank
+- Line 2: blank  
 - Lines 3+: bullet points summarizing key changes
+
+Wrap response in markers exactly like this example:
+COMMIT_START
+Add label filtering to search API
+
+- Extract label filters from search attributes
+- Apply filters as term queries in OpenSearch
+- Add unit tests for filter building
+COMMIT_END
 
 Original commits:
 $orig_msgs
 
-Diff:
+Stat:
+$diffstat
+
+Diff (truncated, excludes lockfiles, AT = @):
 $diff"
         
         echo "Generating commit message..."
-        local tmpfile=$(mktemp)
-        TERM=dumb kiro-cli chat --no-interactive --trust-all-tools "$prompt" > "$tmpfile" 2>/dev/null
-        # Strip ANSI codes and kiro prompt prefix
-        local new_msg=$(cat "$tmpfile" | LC_ALL=C sed $'s/\033\\[[0-9;]*m//g' | sed 's/^> //' | sed '/^$/d')
-        rm -f "$tmpfile"
+        local tmpfile="/tmp/kiro-commit-$(basename "$r").txt"
+        TERM=dumb kiro-cli chat --no-interactive --trust-all-tools "$prompt" > "$tmpfile" 2>&1
+        
+        # Extract content between markers (robust to UI chrome)
+        local new_msg=$(cat "$tmpfile" \
+            | LC_ALL=C sed $'s/\033\\[[0-9;]*[a-zA-Z]//g' \
+            | tr -d '\r' \
+            | sed -n '/COMMIT_START/,/COMMIT_END/p' \
+            | grep -v 'COMMIT_START\|COMMIT_END' \
+            | sed '/^[[:space:]]*$/d')
         
         if [[ -n "$new_msg" ]]; then
             git -C "$r" commit --amend -m "$new_msg"
+            rm -f "$tmpfile"
             echo "✓ Ready for CR"
         else
             echo "⚠ Kiro failed, keeping WIP message. Run: git commit --amend"
+            echo "  Raw output: $tmpfile"
         fi
+    done
+}
+
+_ws_prune() {
+    local dry_run=false
+    [[ "$1" == "--dry-run" || "$1" == "-n" ]] && { dry_run=true; shift; }
+    local me="${1:-zachhe}"
+    
+    _ws_repos | while read r; do
+        local name="${r##*/}"
+        echo "=== $name ==="
+        
+        # Local branches (not mainline, not current)
+        git -C "$r" for-each-ref --format='%(refname:short)' refs/heads | while read b; do
+            [[ "$b" == "mainline" || "$b" == "$(git -C "$r" branch --show-current)" ]] && continue
+            if $dry_run; then echo "  local: $b"; else git -C "$r" branch -D "$b" 2>/dev/null && echo "  deleted local: $b"; fi
+        done
+        
+        # Remote branches owned by me
+        git -C "$r" fetch --prune origin 2>/dev/null
+        git -C "$r" for-each-ref --format='%(refname:short)' refs/remotes/origin | grep "/$me/" | while read b; do
+            local remote_branch="${b#origin/}"
+            if $dry_run; then echo "  remote: $remote_branch"; else git -C "$r" push origin --delete "$remote_branch" 2>/dev/null && echo "  deleted remote: $remote_branch"; fi
+        done
     done
 }
 
