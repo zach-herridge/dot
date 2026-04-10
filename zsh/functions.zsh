@@ -1,6 +1,6 @@
 function inrepos() {
     local depth="${INREPOS_DEPTH:-3}"
-    find . -maxdepth "$depth" -name ".git" -type d | while read gitdir; do
+    find . -maxdepth "$depth" -name ".git" -type d 2>/dev/null | while IFS= read -r gitdir; do
         repo=$(dirname "$gitdir")
         echo -e "\n=== $repo ==="
         (cd "$repo" && eval "$@")

@@ -1,4 +1,5 @@
+-- Disabled: superseded by snacks.nvim input/select
 return {
   "stevearc/dressing.nvim",
-  event = "VeryLazy",
+  enabled = false,
 }

@@ -31,7 +31,7 @@ ws - workspace CLI
   ws branches|br    Show branches across repos  
   ws status|st      Show dirty repos
   ws rebase         Rebase all clean repos onto mainline
-  ws prep           Squash, rebase, generate commit msg with kiro
+  ws prep           Squash, rebase, generate commit msg with claude
   ws root           Go to workspace root
   ws help           This help
 EOF
@@ -54,7 +54,10 @@ _ws_go() {
     [[ "$1" == "cd" ]] && { do_cd=true; shift; }
     local target="$1"; shift
     local root=$(_ws_root) || { echo "No workspace root found"; return 1; }
-    local matches=($(find "$root/src" -maxdepth 1 -type d -iname "*$target*"))
+    local -a matches=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && matches+=("$line")
+    done < <(find "$root/src" -maxdepth 1 -type d -iname "*$target*" 2>/dev/null)
     local dir
     case ${#matches[@]} in
         0) echo "No match for '$target'"; return 1 ;;
@@ -177,13 +180,12 @@ _ws_prep() {
         git -C "$r" reset --soft origin/mainline
         git -C "$r" commit -m "WIP: squashed for CR"
         
-        # Generate commit message with kiro
+        # Generate commit message with claude
         local diffstat=$(git -C "$r" diff origin/mainline --stat)
-        # Escape @ symbols to prevent kiro from expanding them as file references
-        local diff=$(git -C "$r" diff origin/mainline -- ':!package-lock.json' ':!*.lock' | head -300 | sed 's/@/AT/g')
+        local diff=$(git -C "$r" diff origin/mainline -- ':!package-lock.json' ':!*.lock' | head -300)
         local prompt="Generate a git commit message for this diff. Format:
 - Line 1: concise title (max 72 chars, imperative mood)
-- Line 2: blank  
+- Line 2: blank
 - Lines 3+: bullet points summarizing key changes
 
 Wrap response in markers exactly like this example:
@@ -201,27 +203,24 @@ $orig_msgs
 Stat:
 $diffstat
 
-Diff (truncated, excludes lockfiles, AT = @):
+Diff (truncated, excludes lockfiles):
 $diff"
-        
+
         echo "Generating commit message..."
-        local tmpfile="/tmp/kiro-commit-$(basename "$r").txt"
-        TERM=dumb kiro-cli chat --no-interactive --trust-all-tools "$prompt" > "$tmpfile" 2>&1
-        
-        # Extract content between markers (robust to UI chrome)
-        local new_msg=$(cat "$tmpfile" \
-            | LC_ALL=C sed $'s/\033\\[[0-9;]*[a-zA-Z]//g' \
-            | tr -d '\r' \
-            | sed -n '/COMMIT_START/,/COMMIT_END/p' \
+        local tmpfile="/tmp/claude-commit-$(basename "$r").txt"
+        claude -p --output-format text --model sonnet --bare --tools "" "$prompt" > "$tmpfile" 2>&1
+
+        # Extract content between markers
+        local new_msg=$(sed -n '/COMMIT_START/,/COMMIT_END/p' "$tmpfile" \
             | grep -v 'COMMIT_START\|COMMIT_END' \
             | sed '/^[[:space:]]*$/d')
-        
+
         if [[ -n "$new_msg" ]]; then
             git -C "$r" commit --amend -m "$new_msg"
             rm -f "$tmpfile"
-            echo "✓ Ready for CR"
+            echo "Ready for CR"
         else
-            echo "⚠ Kiro failed, keeping WIP message. Run: git commit --amend"
+            echo "Claude failed, keeping WIP message. Run: git commit --amend"
             echo "  Raw output: $tmpfile"
         fi
     done
@@ -265,3 +264,52 @@ _ws_diff() {
         [[ -n "$diff" ]] && echo "=== ${r##*/} ===" && echo "$diff"
     done
 }
+
+# --- Tab completion for ws ---
+_ws_completion() {
+    local -a subcmds
+    subcmds=(
+        'clean:Remove build artifacts'
+        'prune:Delete old local and remote branches'
+        'branches:Show branches across repos'
+        'br:Show branches across repos'
+        'status:Show dirty repos'
+        'st:Show dirty repos'
+        'rebase:Rebase all clean repos onto mainline'
+        'prep:Squash, rebase, generate commit msg'
+        'each:Run command in each repo'
+        'root:Go to workspace root'
+        'ls:List packages'
+        'diff:Show diffs across repos'
+        'help:Show help'
+    )
+
+    if (( CURRENT == 2 )); then
+        # First arg: subcommands + package directory names
+        _describe 'subcommand' subcmds
+
+        local root
+        root=$(_ws_root 2>/dev/null) || return
+        local -a packages
+        packages=(${root}/src/*(/:t))
+        _describe 'package' packages
+    else
+        case "${words[2]}" in
+            prune|prep)
+                _arguments \
+                    '--dry-run[Show what would be done]' \
+                    '-n[Show what would be done]'
+                ;;
+            each)
+                # Complete as a normal command after "ws each"
+                shift words
+                (( CURRENT-- ))
+                _normal
+                ;;
+            *)
+                _files
+                ;;
+        esac
+    fi
+}
+compdef _ws_completion ws

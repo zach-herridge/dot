@@ -9,16 +9,16 @@ function M.find_repos()
     -- Brazil workspace - check src directory for packages
     local src_dir = current .. "/src"
     if vim.fn.isdirectory(src_dir) == 1 then
-      local handle = vim.loop.fs_scandir(src_dir)
+      local handle = vim.uv.fs_scandir(src_dir)
       if handle then
         while true do
-          local name, type = vim.loop.fs_scandir_next(handle)
+          local name, type = vim.uv.fs_scandir_next(handle)
           if not name then break end
           
           if type == "directory" then
             local package_path = src_dir .. "/" .. name
             -- Check if this package directory has a git repo
-            if vim.fn.isdirectory(package_path .. "/.git") == 1 then
+            if vim.fn.isdirectory(package_path .. "/.git") == 1 or vim.fn.filereadable(package_path .. "/.git") == 1 then
               table.insert(repos, package_path)
             end
           end
@@ -27,13 +27,13 @@ function M.find_repos()
     end
     
     -- Also check if the workspace root itself is a git repo
-    if vim.fn.isdirectory(current .. "/.git") == 1 then
+    if vim.fn.isdirectory(current .. "/.git") == 1 or vim.fn.filereadable(current .. "/.git") == 1 then
       table.insert(repos, current)
     end
   else
     -- Regular single repo - walk up the directory tree
     while current ~= "/" do
-      if vim.fn.isdirectory(current .. "/.git") == 1 then
+      if vim.fn.isdirectory(current .. "/.git") == 1 or vim.fn.filereadable(current .. "/.git") == 1 then
         table.insert(repos, current)
         break
       end

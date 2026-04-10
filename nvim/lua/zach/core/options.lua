@@ -47,6 +47,18 @@ opt.backspace = "indent,eol,start"
 -- clipboard
 opt.clipboard = "unnamedplus"
 
+-- live preview of :s substitutions
+opt.inccommand = "split"
+
+-- wrapped lines keep indentation
+opt.breakindent = true
+
+-- cap completion menu height
+opt.pumheight = 10
+
+-- free cursor in visual block mode
+opt.virtualedit = "block"
+
 -- split windows
 opt.splitright = true
 opt.splitbelow = true

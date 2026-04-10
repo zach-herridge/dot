@@ -1,0 +1,31 @@
+# Shared ripgrep config (mirrors nvim/lua/zach/utils/ripgrep.lua ignores)
+# Applied to all shell `rg` invocations via RIPGREP_CONFIG_PATH
+
+--smart-case
+--hidden
+
+# Skip junk directories
+--glob=!.git/
+--glob=!**/node_modules/**
+--glob=!**/build/**
+--glob=!**/dist/**
+--glob=!**/target/**
+--glob=!**/.next/**
+--glob=!**/.nuxt/**
+--glob=!**/vendor/**
+--glob=!**/__pycache__/**
+--glob=!**/env/**
+--glob=!**/tempindex/**
+--glob=!**/indexed/**
+--glob=!**/public/assets/**
+--glob=!**/release-info/**
+--glob=!**/logs/**
+--glob=!**/.cache/**
+--glob=!**/coverage/**
+
+# Skip generated/lock files
+--glob=!package-lock.json
+--glob=!yarn.lock
+--glob=!*.min.js
+--glob=!*.min.css
+--glob=!*.map

@@ -6,8 +6,10 @@ return {
     ensure_installed = {
       "vtsls",
       "lua-language-server",
-      "kotlin-lsp", -- This matches what's already installed
+      "kotlin-lsp",
       "pyright",
+      "json-lsp",
+      "yaml-language-server",
     },
   },
   config = function(_, opts)

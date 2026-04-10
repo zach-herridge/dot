@@ -4,6 +4,26 @@ return {
     event = { "BufReadPre", "BufNewFile" },
     dependencies = { "mason-org/mason.nvim" },
     config = function()
+      -- Diagnostic display
+      vim.diagnostic.config({
+        virtual_text = { spacing = 4, prefix = "~" },
+        signs = {
+          text = {
+            [vim.diagnostic.severity.ERROR] = " ",
+            [vim.diagnostic.severity.WARN] = " ",
+            [vim.diagnostic.severity.INFO] = " ",
+            [vim.diagnostic.severity.HINT] = " ",
+          },
+        },
+        underline = true,
+        update_in_insert = false,
+        severity_sort = true,
+        float = {
+          border = "rounded",
+          source = true,
+        },
+      })
+
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities.textDocument.completion.completionItem.snippetSupport = true
       capabilities.textDocument.completion.completionItem.resolveSupport = {
@@ -50,7 +70,19 @@ return {
         root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile' },
       })
 
-      vim.lsp.enable({ 'kotlin_lsp', 'vtsls', 'lua_ls', 'pyright' })
+      vim.lsp.config('jsonls', {
+        cmd = { mason_bin .. 'vscode-json-language-server', '--stdio' },
+        filetypes = { 'json', 'jsonc' },
+        root_markers = { '.git' },
+      })
+
+      vim.lsp.config('yamlls', {
+        cmd = { mason_bin .. 'yaml-language-server', '--stdio' },
+        filetypes = { 'yaml', 'yaml.docker-compose' },
+        root_markers = { '.git' },
+      })
+
+      vim.lsp.enable({ 'kotlin_lsp', 'vtsls', 'lua_ls', 'pyright', 'jsonls', 'yamlls' })
 
       local bemol_loaded = {}
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -65,14 +97,18 @@ return {
           vim.keymap.set("n", "<leader>cr", vim.lsp.buf.rename, opts)
           vim.keymap.set("n", "<leader>cd", vim.diagnostic.open_float, opts)
           vim.keymap.set("n", "<leader>ch", function()
-            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+            local buf = vim.api.nvim_get_current_buf()
+            vim.lsp.inlay_hint.enable(
+              not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }),
+              { bufnr = buf }
+            )
           end, opts)
 
-          if client.supports_method and client.supports_method("textDocument/inlayHint") then
+          if client and client.supports_method and client.supports_method("textDocument/inlayHint") then
             vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
           end
 
-          if not bemol_loaded[client.id] then
+          if client and not bemol_loaded[client.id] then
             local bemol_dir = vim.fs.find({ '.bemol' }, { upward = true, type = 'directory' })[1]
             if bemol_dir then
               local ws_folders_file = bemol_dir .. '/ws_root_folders'

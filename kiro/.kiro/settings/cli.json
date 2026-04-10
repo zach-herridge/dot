@@ -1,5 +1,5 @@
 {
-  "chat.defaultModel": "claude-opus-4.6",
+  "chat.defaultModel": "claude-opus-4.5",
   "chat.disableAutoCompaction": true,
   "chat.editMode": true,
   "chat.enableContextUsageIndicator": true,
@@ -7,5 +7,6 @@
   "chat.enableThinking": false,
   "compaction.excludeContextWindowPercent": 15,
   "compaction.excludeMessages": 35,
-  "mcp.loadedBefore": true
+  "mcp.loadedBefore": true,
+  "chat.defaultAgent": "zach-default"
 }

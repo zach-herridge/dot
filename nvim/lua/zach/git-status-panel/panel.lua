@@ -97,11 +97,10 @@ function M.open(config)
 
   -- Create buffer
   buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-  vim.api.nvim_buf_set_option(buf, "swapfile", false)
-  vim.api.nvim_buf_set_option(buf, "filetype", "git-status-panel")
-  vim.api.nvim_buf_set_option(buf, "spell", false)
+  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].filetype = "git-status-panel"
 
   -- Set up syntax highlighting
   M.setup_highlights()
@@ -114,12 +113,12 @@ function M.open(config)
   vim.cmd("vertical resize " .. config.window.width)
 
   -- Set window options
-  vim.api.nvim_win_set_option(win, "wrap", false)
-  vim.api.nvim_win_set_option(win, "cursorline", true)
-  vim.api.nvim_win_set_option(win, "winfixwidth", true) -- Prevent resizing
-  vim.api.nvim_win_set_option(win, "spell", false)
-  vim.api.nvim_win_set_option(win, "number", false)
-  vim.api.nvim_win_set_option(win, "relativenumber", false)
+  vim.wo[win].wrap = false
+  vim.wo[win].cursorline = true
+  vim.wo[win].winfixwidth = true
+  vim.wo[win].spell = false
+  vim.wo[win].number = false
+  vim.wo[win].relativenumber = false
 
   -- Set up keymaps
   M.setup_keymaps()
@@ -128,14 +127,14 @@ function M.open(config)
   vim.api.nvim_create_autocmd({"BufEnter", "WinEnter"}, {
     buffer = buf,
     callback = function()
-      vim.api.nvim_win_set_option(0, "cursorline", true)
+      vim.wo[0].cursorline = true
     end
   })
 
   vim.api.nvim_create_autocmd({"BufLeave", "WinLeave"}, {
     buffer = buf,
     callback = function()
-      vim.api.nvim_win_set_option(0, "cursorline", false)
+      vim.wo[0].cursorline = false
     end
   })
 
@@ -207,7 +206,7 @@ function M.update(status_data, unstaged_only)
   end
 
   -- Make buffer modifiable before updating
-  vim.api.nvim_buf_set_option(buf, "modifiable", true)
+  vim.bo[buf].modifiable = true
 
   local lines = {}
   line_data = {} -- Reset line data
@@ -372,7 +371,7 @@ function M.update(status_data, unstaged_only)
     end
   end
 
-  vim.api.nvim_buf_set_option(buf, "modifiable", false)
+  vim.bo[buf].modifiable = false
 end
 
 function M.open_file()
@@ -382,8 +381,8 @@ function M.open_file()
   if data then
     if data.is_project then
       -- Open project directory in Oil in the previous window
-      vim.cmd("wincmd p") -- Go to previous window
-      require("zach.plugins.flyer").open(data.repo_path)
+      vim.cmd("wincmd p")
+      require("oil").open(data.repo_path)
     else
       -- Open file normally
       vim.cmd("wincmd p") -- Go to previous window
@@ -765,6 +764,7 @@ function M.pick_files()
 
   git_module.get_status_for_repos(repos, function(status_data)
     local items = {}
+    local file_paths = {}
 
     for repo_name, repo_data in pairs(status_data) do
       for _, file_data in ipairs(repo_data.files) do
@@ -774,6 +774,7 @@ function M.pick_files()
           repo = repo_name,
           status = file_data.status,
         })
+        table.insert(file_paths, file_data.full_path)
       end
     end
 
@@ -782,15 +783,38 @@ function M.pick_files()
       return
     end
 
+    local function open_grep()
+      -- Grep only in changed files using glob patterns
+      local globs = {}
+      for _, path in ipairs(file_paths) do
+        -- Make path relative to cwd
+        local rel = path:gsub("^" .. vim.fn.getcwd() .. "/", "")
+        table.insert(globs, "-g")
+        table.insert(globs, rel)
+      end
+      Snacks.picker.grep({
+        title = "Grep Git Changes",
+        args = globs,
+        win = {
+          input = {
+            keys = {
+              ["<C-g>"] = { function(picker)
+                picker:close()
+                M.pick_files()
+              end, mode = { "i", "n" }, desc = "Switch to files" },
+            },
+          },
+        },
+      })
+    end
+
     Snacks.picker({
       title = "Git Changes",
       items = items,
       format = function(item, picker)
         local ret = {}
-        -- Git status with color
         table.insert(ret, { item.status, M.status_hl(item.status) })
         table.insert(ret, { " " })
-        -- File icon via mini.icons or nvim-web-devicons
         local icon, hl = "", nil
         local ok, icons = pcall(require, "mini.icons")
         if ok then
@@ -802,11 +826,9 @@ function M.pick_files()
           end
         end
         table.insert(ret, { (icon or "") .. " ", hl })
-        -- Filename
         local filename = vim.fn.fnamemodify(item.file, ":t")
         local dir = vim.fn.fnamemodify(item.file, ":h")
         table.insert(ret, { filename, M.status_hl(item.status) })
-        -- Directory path dimmed
         if dir ~= "." then
           table.insert(ret, { " " .. dir, "Comment" })
         end
@@ -817,6 +839,16 @@ function M.pick_files()
         picker:close()
         vim.cmd("edit " .. vim.fn.fnameescape(item.file))
       end,
+      win = {
+        input = {
+          keys = {
+            ["<C-g>"] = { function(picker)
+              picker:close()
+              open_grep()
+            end, mode = { "i", "n" }, desc = "Switch to grep" },
+          },
+        },
+      },
     })
   end)
 end

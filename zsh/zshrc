@@ -12,3 +12,8 @@ source ~/dot/zsh/terminal-title.zsh
 
 eval "$(starship init zsh)"
 
+alias arcc-dev="cd /Users/zachhe/workplace/ArccApp/src/ARCCCliCore && node dist/cli/index.js"
+
+export PATH="$HOME/.aim/mcp-servers:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export MESHCLAW_PROJECT_DIR="/Users/zachhe/.meshclaw-app"

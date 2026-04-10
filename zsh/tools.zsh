@@ -1,3 +1,4 @@
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-git config --global push.autoSetupRemote true 2>/dev/null
+# Cache brew prefix for use by other zsh config files
+export BREW_PREFIX="/opt/homebrew"

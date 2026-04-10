@@ -1,7 +1,9 @@
 local M = {}
 
+-- Handles both normal repos (.git directory) and worktrees (.git file)
 local function is_git_repo(path)
   return vim.fn.isdirectory(path .. "/.git") == 1
+    or vim.fn.filereadable(path .. "/.git") == 1
 end
 
 local function is_brazil_workspace(path)
@@ -9,11 +11,11 @@ local function is_brazil_workspace(path)
 end
 
 local function scan_directory(dir, callback)
-  local handle = vim.loop.fs_scandir(dir)
+  local handle = vim.uv.fs_scandir(dir)
   if not handle then return end
 
   while true do
-    local name, type = vim.loop.fs_scandir_next(handle)
+    local name, type = vim.uv.fs_scandir_next(handle)
     if not name then break end
     if type == "directory" then
       callback(dir .. "/" .. name)
@@ -90,30 +92,46 @@ function M.find_all_git_roots()
   return repos
 end
 
+--- Open a snacks picker scoped to git repo(s).
+--- Uses Snacks.picker.pick() uniformly so both built-in sources (files, grep)
+--- and custom sources (grep_word, grep_all) work correctly.
+---
+--- @param source string   Picker source name (e.g. "files", "grep", "grep_word")
+--- @param opts   table?   Options passed to the picker. The special key `fallback`
+---                         (string) is consumed here and not forwarded to snacks.
 function M.git_picker(source, opts)
   opts = opts or {}
   local repos = M.find_all_git_roots()
 
+  -- Strip internal-only keys before passing to snacks
+  local clean_opts = vim.tbl_deep_extend("force", {}, opts)
+  clean_opts.fallback = nil
+
   if #repos == 1 then
-    return Snacks.picker[source](vim.tbl_extend("force", { cwd = repos[1] }, opts))
+    clean_opts.cwd = repos[1]
+    return Snacks.picker.pick(source, clean_opts)
   elseif #repos > 1 then
-    local multi_opts = {
-      multi = vim.tbl_map(function(repo)
-        return vim.tbl_extend("force", { source = source, cwd = repo }, opts)
-      end, repos),
+    -- Multi-repo: create one sub-source per repo
+    local multi = vim.tbl_map(function(repo)
+      return vim.tbl_extend("force", { source = source, cwd = repo }, clean_opts)
+    end, repos)
+
+    -- Build top-level opts; "keep" so multi/format aren't clobbered
+    local pick_opts = vim.tbl_extend("keep", {
+      multi = multi,
       format = "file",
-    }
-    -- Add live support for grep sources
+    }, clean_opts)
+
     if source:match("grep") then
-      multi_opts.live = true
-      multi_opts.supports_live = true
+      pick_opts.live = true
+      pick_opts.supports_live = true
     end
-    return Snacks.picker.pick(vim.tbl_extend("force", multi_opts, opts))
+
+    return Snacks.picker.pick(pick_opts)
   else
-    local fallback = opts.fallback or source:gsub("^git_", "")
-    local fallback_opts = vim.tbl_deep_extend("force", {}, opts)
-    fallback_opts.fallback = nil
-    return Snacks.picker[fallback](fallback_opts)
+    -- No repos found -- fall back
+    local fallback = opts.fallback or source
+    return Snacks.picker.pick(fallback, clean_opts)
   end
 end
 

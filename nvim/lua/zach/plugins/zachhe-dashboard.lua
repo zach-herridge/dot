@@ -102,7 +102,7 @@ return {
     }
 
     -- Set up timer to update dashboard every minute
-    local timer = vim.loop.new_timer()
+    local timer = vim.uv.new_timer()
     timer:start(60000, 60000, vim.schedule_wrap(function()
       -- Only update if dashboard is visible
       local buf = vim.api.nvim_get_current_buf()

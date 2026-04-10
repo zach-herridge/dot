@@ -14,20 +14,22 @@ return {
       options = {
         theme = "auto",
         globalstatus = true,
-        disabled_filetypes = { statusline = { "dashboard", "alpha", "starter" } },
+        disabled_filetypes = { statusline = { "dashboard", "alpha", "starter", "snacks_dashboard" } },
       },
       extensions = { "lazy" },
       sections = {
         lualine_a = { 'mode' },
+        lualine_b = { 'branch' },
         lualine_c = {
           { 'filename', path = 1 },
+          { 'diagnostics', sources = { 'nvim_diagnostic' } },
           {
             "macro-recording",
             fmt = show_macro_recording,
           }
         },
-        lualine_x = {},
-        lualine_y = {},
+        lualine_x = { 'filetype' },
+        lualine_y = { 'progress' },
         lualine_z = { 'location' }
       },
     })

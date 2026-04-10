@@ -1,11 +1,10 @@
 local M = {}
 
--- Shared ripgrep ignore patterns
+-- Shared ripgrep ignore patterns (junk directories/files to always skip)
 M.ignores = {
   "--glob=!.git/",
   "--glob=!**/node_modules/**",
   "--glob=!**/build/**",
-  "--glob=!build/**",
   "--glob=!**/dist/**",
   "--glob=!**/target/**",
   "--glob=!**/.next/**",
@@ -18,10 +17,13 @@ M.ignores = {
   "--glob=!**/public/assets/**",
   "--glob=!**/release-info/**",
   "--glob=!**/logs/**",
+  "--glob=!**/.cache/**",
+  "--glob=!**/coverage/**",
   "--glob=!package-lock.json",
   "--glob=!yarn.lock",
   "--glob=!*.min.js",
   "--glob=!*.min.css",
+  "--glob=!*.map",
 }
 
 -- Base ripgrep args
@@ -35,9 +37,10 @@ M.base_args = {
   "--no-require-git",
 }
 
--- Merge base args with ignores
+-- Build args list: base + extra + ignores
+-- Uses vim.list_extend (not vim.tbl_extend which is for dicts)
 function M.make_args(extra_args)
-  local args = vim.tbl_extend("force", {}, M.base_args)
+  local args = vim.list_extend({}, M.base_args)
   if extra_args then
     vim.list_extend(args, extra_args)
   end

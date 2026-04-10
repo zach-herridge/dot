@@ -14,23 +14,28 @@ local git = require("zach.git-status-panel.git")
 
 local show_unstaged_only = false
 local current_mode = nil -- Track current mode: "all" or "unstaged"
+local refresh_timer = nil -- Stored to prevent leak on repeated setup()
 
 function M.setup(opts)
   config = vim.tbl_deep_extend("force", config, opts or {})
-  
+
   -- Create user commands
   vim.api.nvim_create_user_command("GitStatusPanel", function()
     M.toggle()
   end, {})
-  
+
   vim.api.nvim_create_user_command("GitStatusPanelUnstaged", function()
     M.toggle_unstaged()
   end, {})
-  
-  -- Auto-refresh timer
+
+  -- Auto-refresh timer (stop old one first to prevent leaks)
+  if refresh_timer then
+    refresh_timer:stop()
+    refresh_timer:close()
+  end
   if config.refresh_interval > 0 then
-    local timer = vim.loop.new_timer()
-    timer:start(0, config.refresh_interval, vim.schedule_wrap(function()
+    refresh_timer = vim.uv.new_timer()
+    refresh_timer:start(0, config.refresh_interval, vim.schedule_wrap(function()
       if panel.is_open() then
         M.refresh()
       end

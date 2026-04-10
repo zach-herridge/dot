@@ -22,8 +22,14 @@ mkdir -p ~/dot/zsh
 stow .
 
 echo "Installing tools via Homebrew..."
-brew install git zoxide fd wget tmux dua-cli btop lazygit fzf ripgrep starship eza ghostty kitty zsh-autosuggestions zsh-syntax-highlighting astroterm imagemagick
+brew install git zoxide fd wget tmux dua-cli btop lazygit fzf fzf-tab ripgrep starship eza bat atuin ghostty kitty zsh-autosuggestions zsh-syntax-highlighting astroterm imagemagick
 brew install --HEAD neovim
+
+echo "Configuring git..."
+git config --global push.autoSetupRemote true
+
+echo "Importing shell history into atuin..."
+atuin import auto 2>/dev/null || true
 
 if [ ! -d ~/.tmux/plugins/tpm ]; then
     echo "Installing tmux plugin manager..."

@@ -59,20 +59,31 @@ return {
       })
     end, desc = "Find files"},
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find files" },
+    { "<leader>fF", function() Snacks.picker.files({ ignored = true }) end, desc = "Find files (incl. ignored)" },
     { "<leader>fr", function() Snacks.picker.recent() end, desc = "Find recent files" },
     { "<leader>fg", function()
       require("zach.utils.git").git_picker("grep", { fallback = "grep" })
     end, desc = "Find string in git files" },
+    { "<leader>fg", function()
+      require("zach.utils.git").git_picker("grep", {
+        search = Snacks.picker.util.visual(),
+        fallback = "grep",
+      })
+    end, mode = "v", desc = "Grep selection" },
     { "<leader>fG", function()
-      Snacks.picker.grep({
-        hidden = true,
-        ignored = true,
-        args = { "--no-ignore" },
+      local rg = require("zach.utils.ripgrep")
+      Snacks.picker.pick("grep", {
+        args = rg.make_args({ "--no-ignore" }),
       })
     end, desc = "Find string (all files)" },
-    { "<leader>fg", function()
-      Snacks.picker.grep({ search = Snacks.picker.util.visual() })
-    end, mode = "v", desc = "Grep selection" },
+    { "<leader>fw", function()
+      local rg = require("zach.utils.ripgrep")
+      require("zach.utils.git").git_picker("grep", {
+        search = vim.fn.expand("<cword>"),
+        fallback = "grep",
+        args = rg.make_args({ "--word-regexp" }),
+      })
+    end, desc = "Find word under cursor" },
     { "<leader>fs", function() Snacks.picker.lines() end, desc = "Find string in current file" },
     { "<leader>fu", function() Snacks.picker.undo() end, desc = "Find undo states" },
     { "<leader>fX", function() Snacks.picker.diagnostics() end, desc = "Find diagnostics" },
@@ -108,21 +119,9 @@ return {
 
     opts.picker = opts.picker or {}
     opts.picker.sources = {
-      git_files_all = {
-        name = "git_files_all",
-        cmd = "git",
-        args = function()
-          return { "ls-files", "--cached", "--others", "--exclude-standard" }
-        end,
-      },
       grep = {
         cmd = "rg",
         args = rg.make_args(),
-        parse_args = true,
-      },
-      grep_word = {
-        cmd = "rg",
-        args = rg.make_args({"--word-regexp"}),
         parse_args = true,
       },
     }
