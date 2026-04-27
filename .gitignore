@@ -9,6 +9,8 @@ Thumbs.db
 
 tmux/plugins*
 
+*/node_modules/*
+
 .idea
 
 # Neovim

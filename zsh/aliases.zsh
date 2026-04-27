@@ -1,11 +1,9 @@
 alias v="nvim"
 alias bb="brazil-build"
-alias bbb="brazil-recursive-cmd brazil-build release --allPackages"
-alias bbk="bb ktlintFormat; bb"
+alias bbb="brazil-recursive-cmd brazil-build release --allpackages"
 alias gt="lazygit"
 alias ci="zi"
 alias c="clear"
-alias btest="bb && bb format && bb lint-fix"
 
 alias l="eza -l --icons --git -a"
 alias lt="eza --tree --level=2 --long --icons --git -a"

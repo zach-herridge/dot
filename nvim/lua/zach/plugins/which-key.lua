@@ -30,6 +30,7 @@ return {
       { "<leader>cf", group = "format" },
       { "<leader>o", group = "open" },
       { "<leader>t", group = "toggle/terminal" },
+      { "<leader>tc", group = "claude" },
       { "<leader>r", group = "replace" },
       { "<leader>m", group = "markdown" },
       { "<leader>k", group = "shell" },
