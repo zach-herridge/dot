@@ -48,51 +48,36 @@ def is_vim_running(w):
         return False
 
 
-def is_claude_running(foreground_processes):
-    """Check if Claude Code is a foreground process."""
+def get_claude_pid(foreground_processes):
+    """Get the PID of a running Claude Code foreground process."""
     for fp in (foreground_processes or []):
         cmdline = fp.get("cmdline", [])
         if not cmdline:
             continue
         name = cmdline[0].split("/")[-1]
         if name == "claude":
-            return True
+            return fp.get("pid")
         if name == "node" and any("claude" in a for a in cmdline[1:]):
-            return True
-    return False
+            return fp.get("pid")
+    return None
 
 
-def find_claude_conversation(cwd):
-    """Find the most recent Claude conversation file for a working directory."""
-    sessions_dir = os.path.expanduser("~/.claude/sessions")
-    if not os.path.isdir(sessions_dir):
+def conversation_from_session(session_path, fallback_cwd=None):
+    """Given a session JSON file, resolve the conversation JSONL path."""
+    if not session_path or not os.path.exists(session_path):
         return None
-
-    # Find most recent session file
-    best_path = None
-    best_mtime = 0
-    for name in os.listdir(sessions_dir):
-        if not name.endswith(".json"):
-            continue
-        path = os.path.join(sessions_dir, name)
-        mtime = os.path.getmtime(path)
-        if mtime > best_mtime:
-            best_mtime = mtime
-            best_path = path
-
-    if not best_path:
+    try:
+        with open(session_path) as f:
+            session = json.load(f)
+    except Exception:
         return None
-
-    with open(best_path) as f:
-        session = json.load(f)
 
     session_id = session.get("sessionId")
     session_cwd = session.get("cwd", "")
-    if not session_id or not session_cwd:
+    if not session_id:
         return None
 
-    # Try session's own cwd first, then the passed cwd
-    for try_cwd in [session_cwd, cwd]:
+    for try_cwd in [session_cwd, fallback_cwd]:
         if not try_cwd:
             continue
         encoded = try_cwd.replace("/", "-")
@@ -103,6 +88,88 @@ def find_claude_conversation(cwd):
             return conv_file
 
     return None
+
+
+def find_claude_conversation(cwd, claude_pid=None):
+    """Find the Claude conversation file for the current tab.
+
+    Uses a tiered strategy to correctly identify which conversation belongs
+    to this specific terminal tab, even with multiple Claude instances:
+
+      1. Direct PID->session lookup (exact match, O(1))
+      2. Walk process tree upward (handles child-of-claude edge case)
+      3. CWD-scoped most recent JSONL (handles stale/missing session files)
+      4. Global fallback (original behavior, last resort)
+    """
+    sessions_dir = os.path.expanduser("~/.claude/sessions")
+
+    # Strategy 1: Direct PID -> session file (session files are named {pid}.json)
+    if claude_pid:
+        session_path = os.path.join(sessions_dir, f"{claude_pid}.json")
+        conv = conversation_from_session(session_path, cwd)
+        if conv:
+            return conv
+
+        # Strategy 2: Walk process tree upward to find ancestor with session file
+        import subprocess
+
+        try:
+            r = subprocess.run(
+                ["ps", "-eo", "pid=,ppid="], capture_output=True, text=True
+            )
+            parent_of = {}
+            for line in r.stdout.splitlines():
+                parts = line.split()
+                if len(parts) == 2:
+                    parent_of[parts[0]] = parts[1]
+
+            current = str(claude_pid)
+            for _ in range(10):
+                parent = parent_of.get(current)
+                if not parent or parent in ("0", "1", current):
+                    break
+                session_path = os.path.join(sessions_dir, f"{parent}.json")
+                conv = conversation_from_session(session_path, cwd)
+                if conv:
+                    return conv
+                current = parent
+        except Exception:
+            pass
+
+    # Strategy 3: Most recent JSONL in the CWD-scoped project directory
+    if cwd:
+        encoded = cwd.replace("/", "-")
+        project_dir = os.path.expanduser(f"~/.claude/projects/{encoded}")
+        if os.path.isdir(project_dir):
+            best_path = None
+            best_mtime = 0
+            for name in os.listdir(project_dir):
+                if not name.endswith(".jsonl"):
+                    continue
+                path = os.path.join(project_dir, name)
+                mtime = os.path.getmtime(path)
+                if mtime > best_mtime:
+                    best_mtime = mtime
+                    best_path = path
+            if best_path:
+                return best_path
+
+    # Strategy 4: Global fallback - most recent session file
+    if not os.path.isdir(sessions_dir):
+        return None
+
+    best_session = None
+    best_mtime = 0
+    for name in os.listdir(sessions_dir):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(sessions_dir, name)
+        mtime = os.path.getmtime(path)
+        if mtime > best_mtime:
+            best_mtime = mtime
+            best_session = path
+
+    return conversation_from_session(best_session, cwd)
 
 
 @result_handler(type_of_input=None, no_ui=True, has_ready_notification=False)
@@ -128,9 +195,10 @@ def handle_result(args, result, target_window_id: int, boss: Boss) -> None:
     mode = "scrollback"
     conversation_file = None
 
-    if is_claude_running(foreground):
+    claude_pid = get_claude_pid(foreground)
+    if claude_pid:
         cwd = w.child.foreground_cwd or ""
-        conv = find_claude_conversation(cwd)
+        conv = find_claude_conversation(cwd, claude_pid)
         if conv:
             mode = "claude"
             conversation_file = conv
