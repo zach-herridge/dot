@@ -50,9 +50,10 @@ function M.open(data)
   vim.bo[buf].swapfile = false
   vim.bo[buf].modifiable = true
 
-  -- Set lines then convert ANSI escape codes to nvim highlights via baleia
+  -- Set lines then convert ANSI escape codes to nvim highlights via baleia.
+  -- async = false ensures all chunks are processed before we lock the buffer.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  require("baleia").setup({}).once(buf)
+  require("baleia").setup({ async = false }).once(buf)
 
   vim.bo[buf].modifiable = false
 
@@ -62,33 +63,34 @@ end
 
 function M.position_cursor(data)
   local last_line = vim.fn.line("$")
-  local lines = data.lines
-  local y = data.cursor_y - 1
-  local x = data.cursor_x - 1
   local scrolled_by = data.scrolled_by
+  local y = data.cursor_y - 1 -- 0-indexed row from top of viewport
+  local x = data.cursor_x - 1 -- 0-indexed column
 
   local orig_ve = vim.o.virtualedit
   local orig_so = vim.o.scrolloff
   vim.o.virtualedit = "all"
   vim.o.scrolloff = 0
 
+  -- Anchor: put the last line at the bottom of the window
   ---@diagnostic disable-next-line: param-type-mismatch
   vim.fn.cursor(last_line, 1)
+  vim.cmd("normal! zb")
 
-  if lines > 0 then
-    vim.cmd.normal({ lines .. "k", bang = true })
-  end
-  if y > 0 then
-    vim.cmd.normal({ y .. "j", bang = true })
-  end
-  if x > 0 then
-    vim.cmd.normal({ x .. "l", bang = true })
-  end
+  -- If terminal was scrolled up from the bottom, scroll the view up to match
   if scrolled_by > 0 then
     vim.cmd.normal({
       vim.api.nvim_replace_termcodes(scrolled_by .. "<C-y>", true, false, true),
       bang = true,
     })
+  end
+
+  -- Place cursor relative to the top of the now-visible viewport
+  local top_line = vim.fn.line("w0")
+  local target_line = math.min(top_line + y, last_line)
+  vim.fn.cursor(target_line, 1)
+  if x > 0 then
+    vim.cmd.normal({ x .. "l", bang = true })
   end
 
   vim.o.virtualedit = orig_ve

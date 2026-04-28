@@ -211,8 +211,6 @@ def handle_result(args, result, target_window_id: int, boss: Boss) -> None:
         "scrolled_by": w.screen.scrolled_by,
         "cursor_x": w.screen.cursor.x + 1,
         "cursor_y": w.screen.cursor.y + 1,
-        "lines": w.screen.lines + 1,
-        "columns": w.screen.columns,
     }
     if conversation_file:
         data["conversation_file"] = conversation_file
