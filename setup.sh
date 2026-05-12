@@ -31,10 +31,14 @@ if [ ! -d ~/dot ]; then
     git clone https://github.com/zach-herridge/dot ~/dot
 fi
 
-mkdir -p ~/dot/zsh
-
+# Stow config packages (creates ~/.config/<name>/ symlinks)
+echo "Stowing config packages..."
 cd ~/dot
-stow .
+stow btop nvim ripgrep starship tmux
+
+if [[ "$OS" == "Darwin" ]]; then
+    stow kitty
+fi
 
 # --- Install tools (cross-platform) ---
 echo "Installing tools via Homebrew..."
@@ -73,14 +77,7 @@ if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
     git clone -b v2.1.3 https://github.com/catppuccin/tmux.git ~/.config/tmux/plugins/catppuccin/tmux
 fi
 
-cd ~/dot
-stow .
-
-echo "Setting up Kiro configuration..."
-stow --target=$HOME kiro
-
 echo "Creating shell configuration symlinks..."
 ln -sf ~/dot/zsh/zshrc ~/.zshrc
-ln -sf ~/dot/tmux/tmux.conf ~/.tmux.conf
 
 echo "Install complete!"

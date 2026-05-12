@@ -1,7 +1,7 @@
 export STARSHIP_CONFIG=~/.config/starship/starship.toml
 export EDITOR=nvim
 export AWS_DEFAULT_REGION=us-east-1
-export RIPGREP_CONFIG_PATH=~/dot/ripgrep/config
+export RIPGREP_CONFIG_PATH=~/.config/ripgrep/config
 
 # fzf configuration
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
