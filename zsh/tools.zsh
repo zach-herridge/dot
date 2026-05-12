@@ -8,4 +8,8 @@ elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
 fi
 
 # Cache brew prefix for use by other zsh config files
-export BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+if command -v brew &>/dev/null; then
+    export BREW_PREFIX="$(brew --prefix)"
+else
+    export BREW_PREFIX=""
+fi

@@ -10,7 +10,7 @@ source ~/dot/zh/shell/zh.zsh
 source ~/dot/zsh/aws-accounts.zsh
 source ~/dot/zsh/terminal-title.zsh
 
-eval "$(starship init zsh)"
+command -v starship &>/dev/null && eval "$(starship init zsh)"
 
 alias arcc-dev="cd $HOME/workplace/ArccApp/src/ARCCCliCore && node dist/cli/index.js"
 

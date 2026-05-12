@@ -51,7 +51,7 @@ bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 
 # --- fzf-tab (must be after compinit, before other plugins) ---
-[[ -f $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh ]] && \
+[[ -n $BREW_PREFIX && -f $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh ]] && \
     source $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh
 
 # fzf-tab: general
