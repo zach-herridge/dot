@@ -32,12 +32,15 @@ if [ ! -d ~/dot ]; then
 fi
 
 # Stow config packages (creates ~/.config/<name>/ symlinks)
+# --adopt: pull any existing files into the package, then git restores ours
 echo "Stowing config packages..."
 cd ~/dot
-stow btop nvim ripgrep starship tmux
+stow --adopt btop nvim ripgrep starship tmux
+git checkout -- btop nvim ripgrep starship tmux
 
 if [[ "$OS" == "Darwin" ]]; then
-    stow kitty
+    stow --adopt kitty
+    git checkout -- kitty
 fi
 
 # --- Install tools (cross-platform) ---
