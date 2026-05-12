@@ -2,8 +2,9 @@ import type { Command } from 'commander';
 import { Workspace } from '../domain/workspace.js';
 import type { Package } from '../domain/package.js';
 import * as git from '../domain/git.js';
-import { c, header, table, empty, confirm, crAction, fzfMultiSelect } from '../lib/ui.js';
+import { c, table, empty, confirm } from '../lib/ui.js';
 import { createSpinner } from 'nanospinner';
+import { monitorCr, saveLastCr } from '../domain/cr-monitor.js';
 
 /**
  * zh prep -- the crown jewel.
@@ -15,7 +16,8 @@ export function registerPrepCommand(program: Command): void {
     .command('prep')
     .description('Squash, rebase, and generate commit messages with Claude')
     .option('-n, --dry-run', 'Show what would happen without making changes')
-    .action(async (options: { dryRun?: boolean }) => {
+    .option('-y, --yes', 'Non-interactive mode (auto-confirm all prompts)')
+    .action(async (options: { dryRun?: boolean; yes?: boolean }) => {
       const ws = Workspace.discover();
       if (!ws) {
         console.error(c.err('No workspace found'));
@@ -43,10 +45,12 @@ export function registerPrepCommand(program: Command): void {
         }
         console.log();
 
-        const yes = await confirm('Commit all with WIP message?');
-        if (!yes) {
-          console.log('Aborted.');
-          process.exit(1);
+        if (!options.yes) {
+          const yes = await confirm('Commit all with WIP message?');
+          if (!yes) {
+            console.log('Aborted.');
+            process.exit(1);
+          }
         }
 
         for (const { pkg } of dirtyPkgs) {
@@ -56,7 +60,12 @@ export function registerPrepCommand(program: Command): void {
       }
 
       // --- Phase 1: Fetch & discover (parallel) ---
-      const spinner = createSpinner('Fetching...').start();
+      const plain = !!options.yes;
+      if (!plain) {
+        var spinner = createSpinner('Fetching...').start();
+      } else {
+        console.log('Fetching...');
+      }
 
       interface Changed {
         pkg: Package;
@@ -78,9 +87,10 @@ export function registerPrepCommand(program: Command): void {
         }),
       );
 
-      spinner.stop();
-      // Clear the spinner line
-      process.stdout.write('\r\x1b[K');
+      if (!plain) {
+        spinner!.stop();
+        process.stdout.write('\r\x1b[K');
+      }
 
       if (changed.length === 0) {
         empty(`All ${skipped} repos up to date.`);
@@ -103,7 +113,11 @@ export function registerPrepCommand(program: Command): void {
       }
 
       // --- Phase 2: Backup, rebase, squash ---
-      const spinner2 = createSpinner('Squashing...').start();
+      if (!plain) {
+        var spinner2 = createSpinner('Squashing...').start();
+      } else {
+        console.log('Squashing...');
+      }
 
       interface PrepResult {
         pkg: Package;
@@ -122,11 +136,14 @@ export function registerPrepCommand(program: Command): void {
         const backup = `backup/${branch}-${dateStamp()}`;
         await git.createBranch(pkg.path, backup);
 
-        // Rebase
+        // Rebase (fallback to merge if rebase fails due to duplicate patches from CR)
         const rebaseResult = await pkg.rebase();
         if (!rebaseResult.success) {
-          prepResults.push({ pkg, status: 'conflict', backup, ahead });
-          continue;
+          const mergeOk = await git.mergeUpstream(pkg.path);
+          if (!mergeOk) {
+            prepResults.push({ pkg, status: 'conflict', backup, ahead });
+            continue;
+          }
         }
 
         // Capture original commit messages before squash
@@ -143,8 +160,10 @@ export function registerPrepCommand(program: Command): void {
         prepResults.push({ pkg, status: 'ready', backup, ahead, origMsgs, diffStat, diff });
       }
 
-      spinner2.stop();
-      process.stdout.write('\r\x1b[K');
+      if (!plain) {
+        spinner2!.stop();
+        process.stdout.write('\r\x1b[K');
+      }
 
       // Show squash results
       const readyPkgs = prepResults.filter((r) => r.status === 'ready');
@@ -163,9 +182,13 @@ export function registerPrepCommand(program: Command): void {
       // --- Phase 3: Generate commit messages with Claude (parallel) ---
       if (readyPkgs.length > 0) {
         console.log();
-        const spinner3 = createSpinner(
-          `Generating commit messages (${readyPkgs.length} parallel)...`,
-        ).start();
+        if (!plain) {
+          var spinner3 = createSpinner(
+            `Generating commit messages (${readyPkgs.length} parallel)...`,
+          ).start();
+        } else {
+          console.log(`Generating commit messages (${readyPkgs.length} parallel)...`);
+        }
 
         const claudeResults = await Promise.allSettled(
           readyPkgs.map(async (r) => {
@@ -199,8 +222,10 @@ export function registerPrepCommand(program: Command): void {
           }),
         );
 
-        spinner3.stop();
-        process.stdout.write('\r\x1b[K');
+        if (!plain) {
+          spinner3!.stop();
+          process.stdout.write('\r\x1b[K');
+        }
 
         // --- Summary ---
         const succeeded: { name: string; title: string }[] = [];
@@ -238,104 +263,49 @@ export function registerPrepCommand(program: Command): void {
         }
       }
 
-      // --- Phase 4: Offer to open CR ---
+      // --- Phase 4: Create CR ---
       if (readyPkgs.length > 0 && conflictPkgs.length === 0) {
         console.log();
-        const action = await crAction(10);
+        if (!plain) {
+          process.stdout.write(`  ${c.dim('creating CR...')}`);
+        } else {
+          console.log('Creating CR...');
+        }
 
-        if (action !== 'skip') {
-          let targetPkgs = readyPkgs;
+        const proc = Bun.spawn(['cr', '--all'], {
+          cwd: ws.root,
+          stdin: new Blob(['0\n']),
+          stdout: 'pipe',
+          stderr: 'pipe',
+        });
+        const [stdout, stderr] = await Promise.all([
+          new Response(proc.stdout).text(),
+          new Response(proc.stderr).text(),
+        ]);
+        const exitCode = await proc.exited;
 
-          if (action === 'select') {
-            const names = readyPkgs.map((r) => r.pkg.name);
-            const selected = await fzfMultiSelect(names, {
-              header: 'Tab to toggle, Enter to confirm',
-            });
-            if (selected.length === 0) {
-              console.log(c.dim('  No repos selected.'));
-              return;
-            }
-            targetPkgs = readyPkgs.filter((r) => selected.includes(r.pkg.name));
-          }
+        if (!plain) {
+          process.stdout.write('\r' + ' '.repeat(40) + '\r');
+        }
 
-          process.stdout.write(`  ${c.dim('creating...')}`);
-
-          if (targetPkgs.length === readyPkgs.length) {
-            // All repos -- single CR via cr --all
-            const proc = Bun.spawn(['cr', '--all'], {
-              cwd: ws.root,
-              stdin: new Blob(['0\n']),
-              stdout: 'pipe',
-              stderr: 'pipe',
-            });
-            const [stdout, stderr] = await Promise.all([
-              new Response(proc.stdout).text(),
-              new Response(proc.stderr).text(),
-            ]);
-            const exitCode = await proc.exited;
-
-            process.stdout.write('\r' + ' '.repeat(40) + '\r');
-
-            if (exitCode === 0) {
-              const url = (stdout + stderr).match(/https:\/\/code\.amazon\.com\/reviews\/CR-\S+/);
-              if (url) {
-                console.log(`  ${c.ok('CR created')}  ${url[0]}`);
-              } else {
-                console.log(c.ok('  CR created'));
-              }
-            } else {
-              console.log(c.err('  cr failed'));
-              const lines = (stdout + stderr).trim().split('\n').slice(-5);
-              for (const line of lines) console.log(`  ${c.dim(line)}`);
+        if (exitCode === 0) {
+          const url = (stdout + stderr).match(/https:\/\/code\.amazon\.com\/reviews\/CR-\S+/);
+          if (url) {
+            console.log(`  ${c.ok('CR created')}  ${url[0]}`);
+            // --- Phase 5: Monitor CR analyzers ---
+            const crId = url[0].match(/CR-\d+/)?.[0];
+            if (crId) {
+              saveLastCr(crId);
+              console.log();
+              await monitorCr(crId, { plain });
             }
           } else {
-            // Subset -- individual CR per package
-            process.stdout.write('\r' + ' '.repeat(40) + '\r');
-            const crResults: { name: string; url?: string; ok: boolean }[] = [];
-
-            for (const r of targetPkgs) {
-              process.stdout.write(`  ${c.dim(`creating ${r.pkg.name}...`)}`);
-              const proc = Bun.spawn(['cr'], {
-                cwd: r.pkg.path,
-                stdin: new Blob(['0\n']),
-                stdout: 'pipe',
-                stderr: 'pipe',
-              });
-              const [stdout, stderr] = await Promise.all([
-                new Response(proc.stdout).text(),
-                new Response(proc.stderr).text(),
-              ]);
-              const exitCode = await proc.exited;
-              process.stdout.write('\r' + ' '.repeat(60) + '\r');
-
-              if (exitCode === 0) {
-                const url = (stdout + stderr).match(
-                  /https:\/\/code\.amazon\.com\/reviews\/CR-\S+/,
-                );
-                crResults.push({ name: r.pkg.name, url: url?.[0], ok: true });
-              } else {
-                crResults.push({ name: r.pkg.name, ok: false });
-              }
-            }
-
-            const succeeded = crResults.filter((r) => r.ok);
-            const failed = crResults.filter((r) => !r.ok);
-
-            if (succeeded.length > 0) {
-              console.log(c.ok('CRs created:'));
-              const rows = succeeded.map((r) => [
-                c.pkg(r.name),
-                r.url ?? c.dim('(no URL found)'),
-              ]);
-              table(rows);
-            }
-
-            if (failed.length > 0) {
-              console.log(c.err('CR failed:'));
-              const rows = failed.map((r) => [c.pkg(r.name)]);
-              table(rows);
-            }
+            console.log(c.ok('  CR created'));
           }
+        } else {
+          console.log(c.err('  cr failed'));
+          const lines = (stdout + stderr).trim().split('\n').slice(-5);
+          for (const line of lines) console.log(`  ${c.dim(line)}`);
         }
       }
     });

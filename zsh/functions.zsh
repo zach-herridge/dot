@@ -18,8 +18,46 @@ nvim() {
 
 
 clc() {
-    fc -ln -2 -2 | pbcopy
+    local cmd
+    cmd="$(fc -ln -2 -2)"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        echo -n "$cmd" | pbcopy
+    elif command -v xclip &>/dev/null; then
+        echo -n "$cmd" | xclip -selection clipboard
+    elif command -v xsel &>/dev/null; then
+        echo -n "$cmd" | xsel --clipboard --input
+    else
+        echo "No clipboard tool found (pbcopy/xclip/xsel)"
+        return 1
+    fi
     echo "Last command copied to clipboard"
+}
+
+# File transfer over kitten ssh (run these ON THE REMOTE)
+# send: push remote file(s) to local ~/Downloads
+# recv: pull local file to remote cwd
+send() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: send <file>... [local_dest]"
+        echo "  send report.txt           → ~/Downloads/report.txt"
+        echo "  send *.log ~/Desktop/     → ~/Desktop/*.log"
+        return 1
+    fi
+    if [[ $# -eq 1 ]]; then
+        kitten transfer "$1" ~/Downloads/
+    else
+        kitten transfer "$@"
+    fi
+}
+
+recv() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: recv <local_path> [remote_dest]"
+        echo "  recv ~/Desktop/key.pem    → ./key.pem"
+        echo "  recv ~/Desktop/key.pem /tmp/"
+        return 1
+    fi
+    kitten transfer --direction=receive "$@"
 }
 
 # Tmux scrollback to nvim (no history)

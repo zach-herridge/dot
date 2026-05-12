@@ -3,12 +3,26 @@ set -e  # Exit on any error
 
 echo "Starting dotfiles installation..."
 
+# --- Detect platform ---
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+# --- Install Homebrew if missing ---
 if ! command -v brew &> /dev/null; then
     echo "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-eval "$(/opt/homebrew/bin/brew shellenv)"
+# --- Activate Homebrew (path depends on platform) ---
+if [[ "$OS" == "Darwin" ]]; then
+    if [[ "$ARCH" == "arm64" ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+elif [[ "$OS" == "Linux" ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
 
 brew install stow
 
@@ -19,10 +33,27 @@ fi
 
 mkdir -p ~/dot/zsh
 
+cd ~/dot
 stow .
 
+# --- Install tools (cross-platform) ---
 echo "Installing tools via Homebrew..."
-brew install git zoxide fd wget tmux dua-cli btop lazygit fzf fzf-tab ripgrep starship eza bat atuin ghostty kitty zsh-autosuggestions zsh-syntax-highlighting astroterm imagemagick
+COMMON_PKGS=(
+    git zoxide fd wget tmux dua-cli btop lazygit
+    fzf fzf-tab ripgrep starship eza bat atuin
+    zsh-autosuggestions zsh-syntax-highlighting
+    imagemagick
+)
+
+# macOS-only GUI apps
+MACOS_PKGS=(ghostty kitty astroterm)
+
+brew install "${COMMON_PKGS[@]}"
+
+if [[ "$OS" == "Darwin" ]]; then
+    brew install "${MACOS_PKGS[@]}"
+fi
+
 brew install --HEAD neovim
 
 echo "Configuring git..."
@@ -42,6 +73,7 @@ if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
     git clone -b v2.1.3 https://github.com/catppuccin/tmux.git ~/.config/tmux/plugins/catppuccin/tmux
 fi
 
+cd ~/dot
 stow .
 
 echo "Setting up Kiro configuration..."

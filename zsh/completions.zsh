@@ -51,7 +51,8 @@ bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 
 # --- fzf-tab (must be after compinit, before other plugins) ---
-source $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh
+[[ -f $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh ]] && \
+    source $BREW_PREFIX/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh
 
 # fzf-tab: general
 zstyle ':fzf-tab:*' fzf-flags --height=50% --layout=reverse --border=rounded

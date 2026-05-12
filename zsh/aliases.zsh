@@ -11,9 +11,15 @@ alias ltree="eza --tree --level=2  --icons --git"
 
 alias k="claude --agent zach-default"
 
+# Kitty-specific aliases (only when kitty is available)
+if command -v kitten &>/dev/null; then
+    alias s="kitten ssh"
+    alias clip="kitten clipboard"
+fi
+
 alias view_disk="dua i"
 alias view_cpu="btop"
 
 alias reload="source ~/dot/zsh/zshrc"
 
-alias arcc-local="/Users/zachhe/workplace/ArccApp/src/ARCCCliCore/build/arcc-cli/arcc"
+alias arcc-local="$HOME/workplace/ArccApp/src/ARCCCliCore/build/arcc-cli/arcc"

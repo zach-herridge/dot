@@ -12,6 +12,7 @@ import { registerPruneCommand } from './commands/prune.js';
 import { registerBuildCommand } from './commands/build.js';
 import { registerTestCommand } from './commands/test.js';
 import { registerDeployCommand } from './commands/deploy.js';
+import { registerCrCommand } from './commands/cr.js';
 import { Workspace } from './domain/workspace.js';
 
 const program = new Command();
@@ -33,6 +34,7 @@ registerPruneCommand(program);
 registerBuildCommand(program);
 registerTestCommand(program);
 registerDeployCommand(program);
+registerCrCommand(program);
 
 // Hidden helper for shell completion
 program

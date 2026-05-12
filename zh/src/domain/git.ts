@@ -80,13 +80,32 @@ export async function rebase(cwd: string, upstream = 'origin/mainline'): Promise
     await $`git -C ${cwd} rebase -q ${upstream}`.quiet();
     return { success: true, conflict: false };
   } catch {
-    // Check if it's a conflict
     try {
       await $`git -C ${cwd} rebase --abort`.quiet();
     } catch {
       // ignore
     }
     return { success: false, conflict: true };
+  }
+}
+
+/**
+ * Fallback for when rebase fails due to duplicate patches (e.g., after a CR squash
+ * lands on mainline with a different SHA). Merges mainline into the local branch so
+ * the subsequent squash step can flatten everything cleanly.
+ * Returns true if the merge succeeded (content is compatible).
+ */
+export async function mergeUpstream(cwd: string, upstream = 'origin/mainline'): Promise<boolean> {
+  try {
+    await $`git -C ${cwd} merge -q --no-edit ${upstream}`.quiet();
+    return true;
+  } catch {
+    try {
+      await $`git -C ${cwd} merge --abort`.quiet();
+    } catch {
+      // ignore
+    }
+    return false;
   }
 }
 
