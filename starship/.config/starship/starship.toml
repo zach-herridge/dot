@@ -1,8 +1,13 @@
 add_newline = true
 
-format = """$directory$git_branch $git_status
+format = """$hostname$directory$git_branch $git_status
 $character"""
 palette = "catppuccin_mocha"
+
+[hostname]
+ssh_only = true
+format = '[$hostname]($style) '
+style = 'bold peach'
 
 [character]
 vicmd_symbol = "[N] >>>"

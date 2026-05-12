@@ -1,3 +1,8 @@
+# Subtle terminal background shift when SSH'd (mocha base → slightly cooler navy)
+if [[ -n $SSH_CONNECTION ]]; then
+    printf '\033]11;#1a1b2e\033\\'
+fi
+
 source ~/dot/zsh/exports.zsh
 source ~/dot/zsh/path.zsh
 source ~/dot/zsh/tools.zsh
