@@ -21,7 +21,7 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
     source $BREW_PREFIX/opt/fzf/shell/key-bindings.zsh
 
 # --- Atuin (overrides Ctrl+R and up-arrow with better TUI) ---
-command -v atuin &>/dev/null && eval "$(atuin init zsh)"
+command -v atuin &>/dev/null && eval "$(atuin init zsh --disable-ai)"
 
 # --- Keybindings ---
 bindkey '^[[C' forward-char  # Right arrow: accept suggestion char-by-char

@@ -35,8 +35,8 @@ fi
 # --adopt: pull any existing files into the package, then git restores ours
 echo "Stowing config packages..."
 cd ~/dot
-stow --adopt btop nvim ripgrep starship tmux
-git checkout -- btop nvim ripgrep starship tmux
+stow --adopt atuin btop nvim ripgrep starship tmux
+git checkout -- atuin btop nvim ripgrep starship tmux
 
 if [[ "$OS" == "Darwin" ]]; then
     stow --adopt kitty

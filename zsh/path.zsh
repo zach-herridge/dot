@@ -1,4 +1,5 @@
 path+=("$HOME/.toolbox/bin/")
+path+=("$HOME/dot/zh/bin")
 
 # macOS Docker desktop
 [[ -d "/Applications/Docker.app/Contents/Resources/bin" ]] && \

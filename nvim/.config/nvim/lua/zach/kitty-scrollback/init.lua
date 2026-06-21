@@ -21,6 +21,9 @@ function M.launch(data_str)
     return
   end
 
+  -- Detect source environment (kitty or tmux)
+  data.source = data.source or "kitty"
+
   if data.mode == "claude" and data.conversation_file then
     require("zach.kitty-scrollback.claude").open(data)
   else

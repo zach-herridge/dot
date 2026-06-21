@@ -32,7 +32,7 @@ return {
       }
     },
     indent = { enabled = false },
-    image = { enabled = true },
+    image = { enabled = false },
     input = { enabled = true },
     scroll = { enabled = false },
     terminal = { enabled = true },

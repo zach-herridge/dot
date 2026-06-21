@@ -11,11 +11,8 @@ alias ltree="eza --tree --level=2  --icons --git"
 
 alias k="claude --agent zach-default"
 
-# Kitty-specific aliases (only when kitty is available)
-if command -v kitten &>/dev/null; then
-    alias s="kitten ssh"
-    alias clip="kitten clipboard"
-fi
+# SSH with auto-attach to persistent tmux session on the remote
+s() { ssh -t "$@" "tmux new-session -A -s main"; }
 
 alias view_disk="dua i"
 alias view_cpu="btop"

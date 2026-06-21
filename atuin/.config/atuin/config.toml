@@ -1,0 +1,14 @@
+# Atuin - local-only shell history
+# No sync, no telemetry, no network calls
+
+auto_sync = false
+update_check = false
+
+enter_accept = true
+
+[sync]
+records = false
+
+[daemon]
+enabled = false
+autostart = false

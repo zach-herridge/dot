@@ -8,27 +8,19 @@ function M.open(data)
   vim.wo[win].signcolumn = "no"
   vim.wo[win].list = false
 
-  -- Fetch scrollback with ANSI codes (synchronous - get-text is instant)
-  local cmd = {
-    data.kitty_path, "@", "get-text",
-    "--match=id:" .. data.window_id,
-    "--extent=all",
-    "--ansi",
-    "--clear-selection",
-  }
+  local lines
 
-  local result = vim.system(cmd, { text = true }):wait()
-
-  if result.code ~= 0 then
-    vim.notify(
-      "kitty-scrollback: get-text failed: " .. (result.stderr or ""),
-      vim.log.levels.ERROR
-    )
-    return
+  if data.source == "tmux" then
+    -- Tmux mode: read scrollback from file
+    lines = M.read_from_file(data.scrollback_file)
+  else
+    -- Kitty mode: fetch scrollback via kitty remote control
+    lines = M.fetch_from_kitty(data)
   end
 
-  local text = result.stdout or ""
-  local lines = vim.split(text, "\n")
+  if not lines then
+    return
+  end
 
   -- Strip trailing empty lines
   while #lines > 0 and lines[#lines] == "" do
@@ -57,8 +49,63 @@ function M.open(data)
 
   vim.bo[buf].modifiable = false
 
-  M.position_cursor(data)
+  if data.source ~= "tmux" then
+    M.position_cursor(data)
+  else
+    -- Tmux mode: scroll to bottom
+    vim.cmd("normal! G")
+  end
+
   M.setup_keymaps(buf)
+end
+
+--- Read scrollback content from a temp file (tmux mode)
+---@param filepath string|nil
+---@return string[]|nil
+function M.read_from_file(filepath)
+  if not filepath then
+    vim.notify("kitty-scrollback: no scrollback file provided", vim.log.levels.ERROR)
+    return nil
+  end
+
+  local f = io.open(filepath, "r")
+  if not f then
+    vim.notify("kitty-scrollback: cannot open scrollback file: " .. filepath, vim.log.levels.ERROR)
+    return nil
+  end
+
+  local text = f:read("*a")
+  f:close()
+  -- Clean up the temp file
+  os.remove(filepath)
+
+  return vim.split(text, "\n")
+end
+
+--- Fetch scrollback via kitty remote control (kitty mode)
+---@param data table
+---@return string[]|nil
+function M.fetch_from_kitty(data)
+  local cmd = {
+    data.kitty_path, "@", "get-text",
+    "--match=id:" .. data.window_id,
+    "--extent=all",
+    "--ansi",
+    "--clear-selection",
+  }
+
+  local result = vim.system(cmd, { text = true }):wait()
+
+  if result.code ~= 0 then
+    vim.notify(
+      "kitty-scrollback: get-text failed: " .. (result.stderr or ""),
+      vim.log.levels.ERROR
+    )
+    return nil
+  end
+
+  local text = result.stdout or ""
+  return vim.split(text, "\n")
 end
 
 function M.position_cursor(data)
