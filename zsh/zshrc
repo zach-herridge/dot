@@ -17,6 +17,6 @@ alias arcc-dev="cd $HOME/workplace/ArccApp/src/ARCCCliCore && node dist/cli/inde
 export PATH="$HOME/.aim/mcp-servers:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export MESHCLAW_PROJECT_DIR="$HOME/.meshclaw-app"
-eval "$(/opt/homebrew/bin/brew shellenv)"
-# Set up mise for runtime management
-eval "$(mise activate zsh)"
+
+# Set up mise for runtime management (node, etc.)
+command -v mise &>/dev/null && eval "$(mise activate zsh)"

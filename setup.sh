@@ -28,20 +28,31 @@ brew install stow
 
 if [ ! -d ~/dot ]; then
     echo "Cloning dotfiles repo..."
-    git clone https://github.com/zach-herridge/dot ~/dot
+    git clone git@github.com:zach-herridge/dot.git ~/dot
+fi
+
+# --- Remove legacy asdf if present ---
+if [ -d "$HOME/.asdf" ]; then
+    echo "Removing legacy asdf installation..."
+    rm -rf "$HOME/.asdf"
+    rm -f "$HOME/.tool-versions"
 fi
 
 # Stow config packages (creates ~/.config/<name>/ symlinks)
 # --adopt: pull any existing files into the package, then git restores ours
 echo "Stowing config packages..."
 cd ~/dot
-stow --adopt atuin btop nvim ripgrep starship tmux
-git checkout -- atuin btop nvim ripgrep starship tmux
 
+STOW_PKGS=(atuin btop mise nvim ripgrep starship tmux)
 if [[ "$OS" == "Darwin" ]]; then
-    stow --adopt kitty
-    git checkout -- kitty
+    STOW_PKGS+=(kitty)
 fi
+
+stow --adopt "${STOW_PKGS[@]}"
+# Restore repo versions (only for tracked files — new packages skip gracefully)
+for pkg in "${STOW_PKGS[@]}"; do
+    git checkout -- "$pkg" 2>/dev/null || true
+done
 
 # --- Install tools (cross-platform) ---
 echo "Installing tools via Homebrew..."
@@ -49,7 +60,7 @@ COMMON_PKGS=(
     git zoxide fd wget tmux dua-cli btop lazygit
     fzf fzf-tab ripgrep starship eza bat atuin
     zsh-autosuggestions zsh-syntax-highlighting
-    imagemagick
+    imagemagick mise oven-sh/bun/bun
 )
 
 # macOS-only GUI apps
@@ -62,6 +73,11 @@ if [[ "$OS" == "Darwin" ]]; then
 fi
 
 brew install --HEAD neovim
+
+# --- Set up mise runtimes (Node LTS, etc.) ---
+echo "Installing runtimes via mise..."
+eval "$(mise activate bash)"
+mise install
 
 echo "Configuring git..."
 git config --global push.autoSetupRemote true
@@ -80,7 +96,18 @@ if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
     git clone -b v2.1.3 https://github.com/catppuccin/tmux.git ~/.config/tmux/plugins/catppuccin/tmux
 fi
 
+# --- Build zh CLI tool ---
+if [[ -d ~/dot/zh ]]; then
+    echo "Building zh CLI..."
+    (cd ~/dot/zh && bun install --frozen-lockfile)
+fi
+
 echo "Creating shell configuration symlinks..."
 ln -sf ~/dot/zsh/zshrc ~/.zshrc
 
+echo ""
 echo "Install complete!"
+echo "  Node: $(node --version)"
+echo "  npm:  $(npm --version)"
+echo ""
+echo "Restart your shell or run: source ~/.zshrc"
