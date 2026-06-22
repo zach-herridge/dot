@@ -11,6 +11,21 @@ PANE_ID="$(tmux display-message -p '#{pane_id}')"
 PANE_PID="$(tmux display-message -p '#{pane_pid}')"
 PANE_CWD="$(tmux display-message -p '#{pane_current_path}')"
 
+# ─── Helper: newest file matching a glob in a directory ──────────────────────
+# Returns the most-recently-modified match, or empty string if there are none.
+# NOTE: do NOT use `find ... | xargs ls -t` here — when find matches nothing,
+# xargs still runs a bare `ls -t`, which lists $PWD and returns an unrelated
+# filename (e.g. "dot"). That bogus path then gets fed to nvim's readfile(),
+# producing "E484: Can't open file dot". Use find's own -printf sort instead.
+newest_match() {
+    local dir="$1" glob="$2"
+    [[ -d "$dir" ]] || { echo ""; return; }
+    find "$dir" -type f -name "$glob" -printf '%T@\t%p\n' 2>/dev/null \
+        | sort -rn \
+        | head -1 \
+        | cut -f2-
+}
+
 # ─── Helper: find claude PID by walking the pane's process tree ──────────────
 get_claude_pid() {
     # Walk the full process tree under PANE_PID looking for claude/node+claude
@@ -85,7 +100,7 @@ find_claude_conversation() {
         local project_dir="$HOME/.claude/projects/$encoded"
         if [[ -d "$project_dir" ]]; then
             local newest
-            newest=$(find "$project_dir" -name "*.jsonl" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1) || true
+            newest=$(newest_match "$project_dir" "*.jsonl")
             if [[ -n "$newest" ]]; then
                 echo "$newest"
                 return
@@ -96,7 +111,7 @@ find_claude_conversation() {
     # Strategy 4: Global fallback - most recent session
     if [[ -d "$sessions_dir" ]]; then
         local newest_session
-        newest_session=$(find "$sessions_dir" -name "*.json" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1) || true
+        newest_session=$(newest_match "$sessions_dir" "*.json")
         if [[ -n "$newest_session" ]]; then
             local conv
             conv=$(resolve_session_file "$newest_session" "$cwd")

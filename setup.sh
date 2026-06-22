@@ -63,8 +63,9 @@ COMMON_PKGS=(
     imagemagick mise oven-sh/bun/bun
 )
 
-# macOS-only GUI apps
-MACOS_PKGS=(ghostty kitty astroterm)
+# macOS-only GUI apps + Nerd Font (provides the icon glyphs kitty's symbol_map
+# falls back to — without it the tmux/starship statusline shows "_ _" tofu).
+MACOS_PKGS=(ghostty kitty astroterm font-symbols-only-nerd-font)
 
 brew install "${COMMON_PKGS[@]}"
 
@@ -90,6 +91,13 @@ if [ ! -d ~/.tmux/plugins/tpm ]; then
     git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 fi
 
+# Actually install the plugins TPM manages (@plugin lines in tmux.conf).
+# Without this, vim-tmux-navigator / tmux-yank are declared but never cloned.
+# Must match TMUX_PLUGIN_MANAGER_PATH pinned in tmux.conf.
+echo "Installing tmux plugins via TPM..."
+TMUX_PLUGIN_MANAGER_PATH="$HOME/.config/tmux/plugins/" \
+    ~/.tmux/plugins/tpm/bin/install_plugins 2>/dev/null || true
+
 if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
     echo "Installing catppuccin tmux theme..."
     mkdir -p ~/.config/tmux/plugins/catppuccin
@@ -104,6 +112,9 @@ fi
 
 echo "Creating shell configuration symlinks..."
 ln -sf ~/dot/zsh/zshrc ~/.zshrc
+# .zshenv is read by ALL zsh invocations (incl. non-interactive `ssh host "tmux ..."`),
+# so brew lands on PATH and tmux resolves to the modern brew build, not system tmux.
+ln -sf ~/dot/zsh/zshenv ~/.zshenv
 
 echo ""
 echo "Install complete!"

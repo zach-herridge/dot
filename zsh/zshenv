@@ -1,0 +1,23 @@
+# ~/.zshenv — sourced by EVERY zsh (login, interactive, and non-interactive
+# command shells like `ssh host "tmux ..."`). Keep it minimal: just enough to
+# put the right tools on PATH so commands resolve to Homebrew binaries (e.g.
+# tmux 3.x) instead of stale system ones (e.g. /usr/bin/tmux 1.8).
+if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Ensure a UTF-8 locale in EVERY shell, including the non-interactive command
+# shell that `ssh host "tmux ..."` runs in. SSH does not forward LANG, so without
+# this the tmux client attaches in non-UTF-8 mode (client_utf8=0) and renders
+# Nerd Font glyphs as "_" boxes. Prefer en_US.UTF-8, fall back to C.UTF-8.
+if [[ -z "$LANG" && -z "$LC_ALL" ]]; then
+    if locale -a 2>/dev/null | grep -qiE '^en_US\.(utf-?8)$'; then
+        export LANG=en_US.UTF-8
+    else
+        export LANG=C.UTF-8
+    fi
+fi

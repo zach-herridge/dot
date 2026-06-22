@@ -47,6 +47,26 @@ opt.backspace = "indent,eol,start"
 -- clipboard
 opt.clipboard = "unnamedplus"
 
+-- Over SSH there is no pbcopy/xclip on the remote host, so yanks would never
+-- reach the local Mac clipboard. Use Neovim's built-in OSC 52 provider: it
+-- emits an escape sequence that the terminal (kitty/Ghostty, and tmux with
+-- set-clipboard on) relays to the local system clipboard. Paste still reads
+-- the local register via unnamedplus when available.
+if vim.env.SSH_TTY and vim.env.SSH_TTY ~= "" then
+  local osc52 = require("vim.ui.clipboard.osc52")
+  vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+      ["+"] = osc52.copy("+"),
+      ["*"] = osc52.copy("*"),
+    },
+    paste = {
+      ["+"] = osc52.paste("+"),
+      ["*"] = osc52.paste("*"),
+    },
+  }
+end
+
 -- live preview of :s substitutions
 opt.inccommand = "split"
 

@@ -35,6 +35,10 @@ copy_to_clipboard() {
         wl-copy
     elif command -v xclip &>/dev/null; then
         xclip -selection clipboard
+    elif [[ -n "${TMUX:-}" ]]; then
+        # Remote host with no clipboard tool: hand the bytes to tmux, which
+        # relays them to the local terminal clipboard via OSC 52 (set-clipboard).
+        tmux load-buffer -w -
     else
         echo "(no clipboard tool found)" >&2
     fi

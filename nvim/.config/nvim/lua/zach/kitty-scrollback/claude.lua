@@ -131,7 +131,21 @@ end
 ---@param filepath string
 ---@return table[]
 local function parse_conversation(filepath)
-  local raw_lines = vim.fn.readfile(filepath)
+  if not filepath or vim.fn.filereadable(filepath) == 0 then
+    vim.notify(
+      "kitty-scrollback: conversation file not readable: " .. tostring(filepath),
+      vim.log.levels.WARN
+    )
+    return {}
+  end
+  local ok, raw_lines = pcall(vim.fn.readfile, filepath)
+  if not ok then
+    vim.notify(
+      "kitty-scrollback: failed to read " .. tostring(filepath),
+      vim.log.levels.WARN
+    )
+    return {}
+  end
   local turns = {}
   local current_turn = nil
   -- Map tool_use id -> index in current_turn.assistant_parts
