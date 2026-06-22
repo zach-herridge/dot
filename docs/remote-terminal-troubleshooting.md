@@ -110,17 +110,29 @@ Every earlier test passed because they all ran in real panes/windows, never a po
 ### Fix
 `nvim/.config/nvim/lua/zach/kitty-scrollback/init.lua` — when the viewer is
 launched from tmux (`data.source == "tmux"` and `$TMUX` set), install a
-clipboard provider that wraps OSC 52 in a **tmux DCS passthrough**
-(`\ePtmux;<payload, ESC doubled>\e\\`). tmux forwards passthrough sequences
-verbatim to the outer terminal **even from a popup** (requires
-`allow-passthrough on`, which `tmux.conf` sets). This override is scoped to the
-scrollback viewer; the normal nvim OSC 52 provider (gated on `SSH_TTY` in
-`options.lua`) is unchanged.
+clipboard provider whose copy fn runs `vim.fn.system({"tmux","load-buffer",
+"-w","-"}, payload)`. The `-w` flag makes the **tmux server itself** emit OSC 52
+to its attached client (kitty) from OUTSIDE the popup, so the popup boundary is
+irrelevant (needs `set-clipboard on`, set in tmux.conf). The override is scoped
+to the viewer; the normal `SSH_TTY`-gated OSC 52 provider in `options.lua` is
+untouched. Ordering is safe: `options.lua` sets `vim.g.clipboard` during config
+load, then `M.launch` overrides it later from the `VimEnter` autocmd.
 
-Verified: the wrapped bytes are well-formed (`ESC P tmux; ESC ESC ]52;c;<b64>
-BEL ESC \`), and when emitted from a real `tmux popup` tmux leaves them as
-passthrough (does not intercept) and forwards to kitty; a bare OSC 52 from the
-same popup is still swallowed, confirming the wrapper is what makes it escape.
+Why NOT the DCS-passthrough approach (`\ePtmux;...\e\\`): an initial attempt
+wrapped OSC 52 in tmux passthrough and emitted it from the popup. It LOOKED
+right (well-formed bytes; tmux didn't intercept) but the bytes were silently
+dropped — "buffer unchanged" can't distinguish "forwarded" from "discarded", and
+in practice the Mac clipboard never updated. `load-buffer -w` sidesteps the
+popup entirely by making the server emit.
+
+Implementation gotchas found while verifying:
+- `set-buffer -w -` does NOT read stdin — it treats `-` as literal data. Must
+  use `load-buffer -w -` (load-buffer reads from the file/stdin arg).
+- An async `jobstart` copy is torn down when the viewer quits right after the
+  yank, before flushing. Use synchronous `vim.fn.system(..., payload)`.
+- Verified end to end: yank in a read-only `nofile` buffer (as the viewer uses)
+  with `clipboard=unnamedplus` + this provider sets the tmux buffer correctly
+  from inside a real popup, and `-w` makes tmux emit OSC 52 to kitty.
 
 ### To test on the Mac
 In a remote session, hit Ctrl+U to open the scrollback/Claude viewer, visually
