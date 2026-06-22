@@ -278,3 +278,54 @@ the break is downstream (tmux→kitty / local).
   `clipboard_control`, `clipboard_max_size 0`.
 - `setup.sh` — symlinks `~/.zshrc` and `~/.zshenv`; installs
   `font-symbols-only-nerd-font` cask on macOS.
+
+---
+
+## Issue 4 — Ctrl+U Claude detection fails in splits (RESOLVED)
+
+### Symptom
+In a split, Ctrl+U often opened plain scrollback instead of the Claude
+conversation view, even though Claude was running in that pane.
+
+### Root cause
+The `bind -n C-u ... run-shell -b '.../scrollback-nvim.sh auto'` binding did NOT
+pass the triggering pane id. Inside the script,
+`tmux display-message -p '#{pane_id}'` resolves to the **active pane of the
+active window** — which, when you trigger from an inactive split, is a DIFFERENT
+pane. So `PANE_PID` was wrong and the Claude process-tree walk searched under the
+wrong pane. (The `hints.sh` bindings already avoided this by passing
+`-e TMUX_PANE=#{pane_id}`; the scrollback bindings never got the same treatment.)
+
+Verified live: triggering `run-shell` for pane `%3` had `display-message`
+resolve to `%0`. With the correct pane id, the existing tree-walk correctly
+distinguishes which Claude belongs to which split (e.g. `%0`→pid 6205,
+`%5`→pid 25776).
+
+### Fix
+- `scripts/scrollback-nvim.sh`: accept the pane id as `$2`; use
+  `display-message -t "$PANE_ID"` for PANE_PID/CWD; fall back to the active pane
+  only if no arg is given.
+- `tmux.conf`: both the `C-v` and `C-u` bindings now pass `#{pane_id}`
+  (expanded against the triggering pane).
+
+## Issue 5 — tmux-navigator behavior in splits (HARDENED)
+
+### Findings
+- The nvim side is correct: `<C-h/j/k/l>` map to `TmuxNavigate*`, which moves
+  within vim and forwards to tmux only at a split edge. Working as designed.
+- The TPM-loaded plugin re-binds `C-h/j/k/l` at startup (TPM runs at the end of
+  tmux.conf), so the inlined bindings in the conf were dead code overridden by
+  the plugin — but they used an OLDER, shorter vim-detection pattern.
+- The old inlined `is_vim` pattern `(view|l?n?vim?x?)(diff)?` missed `fzf`. Since
+  the `C-u` binding (NOT overridden by the plugin) relies on `$is_vim`, C-u
+  inside an fzf window launched from nvim would wrongly open the scrollback
+  viewer instead of going to nvim.
+
+### Fix
+`tmux.conf`: update the inlined `is_vim` to vim-tmux-navigator's canonical
+pattern `(\S+/)?g?\.?(view|l?n?vim?x?|fzf)(diff)?(-wrapped)?`, matching the
+plugin so the C-u detection and the fallback nav bindings behave identically.
+(Verified real nvim on this host reports `comm=nvim` and is detected. Note: the
+plugin's pattern has a quirk where a bare `nvim-wrapped` comm with no path
+prefix doesn't match due to `(\S+/)?` backtracking, but that doesn't occur here
+— nvim runs as plain `nvim`.)

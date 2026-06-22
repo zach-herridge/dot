@@ -2,14 +2,21 @@
 # scrollback-nvim.sh — Launch nvim in a tmux popup to view scrollback or Claude conversation.
 #
 # Usage:
-#   scrollback-nvim.sh scrollback   — always show scrollback
-#   scrollback-nvim.sh claude       — always show claude conversation
-#   scrollback-nvim.sh auto         — if claude is running: show conversation; else: scrollback
+#   scrollback-nvim.sh scrollback [pane-id]  — always show scrollback
+#   scrollback-nvim.sh claude     [pane-id]  — always show claude conversation
+#   scrollback-nvim.sh auto       [pane-id]  — claude running: conversation; else scrollback
+#
+# pane-id: the tmux pane the key was pressed in. The binding passes #{pane_id}
+# (expanded against the triggering pane). Without it we'd fall back to
+# `display-message`, which resolves to the active pane of the active window —
+# WRONG when triggered from an inactive split, so Claude detection and capture
+# would target the wrong pane.
 
 MODE="${1:-auto}"
-PANE_ID="$(tmux display-message -p '#{pane_id}')"
-PANE_PID="$(tmux display-message -p '#{pane_pid}')"
-PANE_CWD="$(tmux display-message -p '#{pane_current_path}')"
+# Prefer the pane id passed by the binding; fall back to the active pane.
+PANE_ID="${2:-$(tmux display-message -p '#{pane_id}')}"
+PANE_PID="$(tmux display-message -p -t "$PANE_ID" '#{pane_pid}')"
+PANE_CWD="$(tmux display-message -p -t "$PANE_ID" '#{pane_current_path}')"
 
 # ─── Helper: newest file matching a glob in a directory ──────────────────────
 # Returns the most-recently-modified match, or empty string if there are none.
