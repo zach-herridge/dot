@@ -105,8 +105,8 @@ So local success is irrelevant to the remote OSC 52 path.
 
 ### The OSC 52 chain and what's verified
 ```
-nvim (emits OSC 52)  →  tmux (set-clipboard on, intercepts)  →  ssh  →  kitty  →  macOS clipboard
-        ✅ verified              ✅ verified                    direct    ❓ unconfirmed   ❓
+nvim (emits bare OSC 52)  →  tmux (set-clipboard on, intercepts)  →  ssh  →  kitty  →  macOS clipboard
+        ✅ proven                     ✅ proven                      direct    ❓ break here   ❓
 ```
 
 Verified on the **remote** host:
@@ -122,6 +122,42 @@ Verified on the **remote** host:
 Connection is **kitty → ssh directly** (no jump host, no mosh), so nothing
 between can swallow the sequence. That leaves the **local kitty hop** as the
 only untested link.
+
+### Remote-side hypotheses — all RULED OUT
+Every theory about the remote side was tested and disproven (nvim run under a
+real pty AND inside a real tmux window, raw bytes captured):
+
+| Hypothesis | Verdict |
+|---|---|
+| Stale PTY / `SSH_TTY` dead | ❌ `SSH_TTY` is set in panes |
+| A plugin overrides `vim.g.clipboard` | ❌ stays `OSC 52` with FULL config; no plugin touches it |
+| nvim not actually emitting OSC 52 | ❌ emits it; payload base64-decodes to the yanked text |
+| BEL (`\a`) vs ST (`ESC \`) terminator mismatch | ❌ nvim uses ST; tmux captures BOTH variants fine |
+| nvim DCS-wraps in `\ePtmux;...` + stale `allow-passthrough` drops it | ❌ nvim's built-in `vim.ui.clipboard.osc52` emits a **bare** OSC 52 (no DCS wrapper, verified in raw bytes); server has `allow-passthrough on` regardless |
+| tmux not intercepting | ❌ `tmux show-buffer` shows the yanked text after a real in-tmux nvim yank |
+
+Note: Neovim's built-in OSC 52 provider does NOT do tmux DCS passthrough
+wrapping (unlike tmux-yank / older vim-oscyank). It emits a bare OSC 52 and
+relies on tmux `set-clipboard on` to intercept + re-forward. Confirmed live:
+`set-clipboard on`, `allow-passthrough on` on the running server; `$TMUX` set in
+panes; captured nvim emit contained NO `ESC P t m u x ;` wrapper.
+
+**Conclusion: the remote side (nvim → tmux) is proven end-to-end.** The break is
+the local kitty hop. The earlier failing `printf` test was INVALID — it was run
+inside an `s host` session, so it traveled printf→tmux→kitty (which we've shown
+delivers to tmux), never kitty alone.
+
+### THE test that resolves it — in a TRULY LOCAL kitty window
+`Cmd-N` for a new kitty window; do **not** `s host` (stay in the local Mac shell):
+```bash
+printf '\033]52;c;aGVsbG8=\a'
+pbpaste      # the real check — NOT Cmd-V into an app
+```
+- `pbpaste` prints `hello` → kitty's OSC 52 write works → break is
+  **tmux→kitty forwarding over the ssh pipe**; debug on the remote.
+- `pbpaste` does NOT → **kitty itself** drops OSC 52 writes (Mac-side). Then:
+  `kitty +runpy 'from kitty.fast_data_types import get_options; print(get_options().clipboard_control)'`
+  and full **Cmd-Q** restart (no reload shortcut — `clear_all_shortcuts yes`).
 
 ### Mac-side facts gathered so far
 - `kitty --version` → `kitty 0.47.4` (current).
