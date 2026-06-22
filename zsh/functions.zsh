@@ -18,19 +18,11 @@ nvim() {
 
 
 clc() {
+    # pbcopy works cross-platform — real binary on macOS, shim on Linux
+    # (see zsh/clipboard.zsh).
     local cmd
     cmd="$(fc -ln -2 -2)"
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        echo -n "$cmd" | pbcopy
-    elif command -v xclip &>/dev/null; then
-        echo -n "$cmd" | xclip -selection clipboard
-    elif command -v xsel &>/dev/null; then
-        echo -n "$cmd" | xsel --clipboard --input
-    else
-        echo "No clipboard tool found (pbcopy/xclip/xsel)"
-        return 1
-    fi
-    echo "Last command copied to clipboard"
+    echo -n "$cmd" | pbcopy && echo "Last command copied to clipboard"
 }
 
 # File transfer over kitten ssh (run these ON THE REMOTE)

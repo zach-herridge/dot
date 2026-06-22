@@ -4,6 +4,7 @@ source ~/dot/zsh/tools.zsh
 source ~/dot/zsh/history.zsh
 source ~/dot/zsh/completions.zsh
 source ~/dot/zsh/modern-zsh.zsh
+source ~/dot/zsh/clipboard.zsh
 source ~/dot/zsh/aliases.zsh
 source ~/dot/zsh/functions.zsh
 source ~/dot/zh/shell/zh.zsh

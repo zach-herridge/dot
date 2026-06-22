@@ -28,6 +28,10 @@ nvim/plugin/packer_compiled.lua
 .env
 .env.local
 
+# Machine-local mise override (e.g. pin node=16 on old-glibc Linux dev boxes)
+mise/.config/mise/config.local.toml
+.config/mise/config.local.toml
+
 AWSCLIV2*
 
 # Kiro - only track cli.json

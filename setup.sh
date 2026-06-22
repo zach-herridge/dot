@@ -78,6 +78,23 @@ brew install --HEAD neovim
 # --- Set up mise runtimes (Node LTS, etc.) ---
 echo "Installing runtimes via mise..."
 eval "$(mise activate bash)"
+
+# The tracked config pins node="lts". That's fine on macOS, but old Linux dev
+# boxes (e.g. Amazon Linux 2, glibc 2.26) can't run prebuilt Node 18+ — only
+# Node 16. Write a machine-local, gitignored override there so `mise install`
+# resolves a Node that actually runs. Also disable Node's GPG check, whose
+# keyring is often broken on corp hosts.
+if [[ "$OS" == "Linux" ]]; then
+    GLIBC_VER="$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$')"
+    # Node 18+ needs glibc >= 2.28; pin to 16 below that.
+    if [[ -n "$GLIBC_VER" ]] && awk "BEGIN{exit !($GLIBC_VER < 2.28)}"; then
+        echo "  glibc $GLIBC_VER is < 2.28 — pinning node=16 for this host"
+        mkdir -p ~/.config/mise
+        printf '[tools]\nnode = "16"\n' > ~/.config/mise/config.local.toml
+        export MISE_NODE_GPG_VERIFY=false
+    fi
+fi
+
 mise install
 
 echo "Configuring git..."
