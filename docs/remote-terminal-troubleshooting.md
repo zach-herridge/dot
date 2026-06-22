@@ -87,7 +87,49 @@ NOTE: an already-running server keeps its old UTF-8 state — must
 
 ---
 
-## Issue 3 — Remote nvim yank doesn't reach Mac clipboard (OPEN)
+## Issue 3 — Remote nvim yank doesn't reach Mac clipboard
+
+### RESOLVED: the real cause was the tmux POPUP, not the normal nvim path
+After ruling out every remote-side hypothesis (below) and confirming the local
+kitty hop works, a step-by-step A/B isolated the actual trigger: the failing
+yank was done with **Ctrl+U**, which (per `tmux.conf`) does NOT send C-u to a
+normal nvim — it launches the scrollback/Claude viewer via
+`scripts/scrollback-nvim.sh`, which runs nvim inside a **`tmux popup -E`**
+(line ~246 of that script).
+
+**A `tmux popup` does not relay a child's OSC 52 to the host terminal.** tmux's
+`set-clipboard on` interception/forwarding applies to *panes*, not popups.
+Proven at the byte level:
+- OSC 52 emitted from a normal window → tmux buffer updates (intercepted/forwarded). ✅
+- OSC 52 emitted from a `tmux popup` → tmux buffer unchanged (swallowed). ❌
+
+So the viewer's nvim yanked into its register (hence "N lines yanked") and
+emitted the escape, but the popup boundary ate it — clipboard never changed.
+Every earlier test passed because they all ran in real panes/windows, never a popup.
+
+### Fix
+`nvim/.config/nvim/lua/zach/kitty-scrollback/init.lua` — when the viewer is
+launched from tmux (`data.source == "tmux"` and `$TMUX` set), install a
+clipboard provider that wraps OSC 52 in a **tmux DCS passthrough**
+(`\ePtmux;<payload, ESC doubled>\e\\`). tmux forwards passthrough sequences
+verbatim to the outer terminal **even from a popup** (requires
+`allow-passthrough on`, which `tmux.conf` sets). This override is scoped to the
+scrollback viewer; the normal nvim OSC 52 provider (gated on `SSH_TTY` in
+`options.lua`) is unchanged.
+
+Verified: the wrapped bytes are well-formed (`ESC P tmux; ESC ESC ]52;c;<b64>
+BEL ESC \`), and when emitted from a real `tmux popup` tmux leaves them as
+passthrough (does not intercept) and forwards to kitty; a bare OSC 52 from the
+same popup is still swallowed, confirming the wrapper is what makes it escape.
+
+### To test on the Mac
+In a remote session, hit Ctrl+U to open the scrollback/Claude viewer, visually
+select + yank some lines, close it, then `pbpaste` on the Mac — should show the
+yanked text.
+
+---
+
+## Issue 3 — historical analysis (kept for reference)
 
 ### Symptom
 In remote nvim, `y` reports e.g. "18 lines yanked" but nothing lands in the Mac
