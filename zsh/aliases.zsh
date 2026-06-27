@@ -22,6 +22,20 @@ s() { ssh -t "$@" "tmux -u new-session -A -s main"; }
 alias view_disk="dua i"
 alias view_cpu="btop"
 
-alias reload="source ~/dot/zsh/zshrc"
+# Reload the shell config, and the tmux config too if we're inside tmux — so a
+# single `reload` refreshes the whole environment. tmux never re-reads its
+# config on its own, so without this an edited tmux.conf keeps serving stale
+# settings until the next `prefix+r` / restart.
+# `unalias` guard: this file was previously sourced when `reload` was an alias,
+# and re-sourcing over an existing alias makes zsh reject the function def.
+unalias reload 2>/dev/null
+reload() {
+  source ~/dot/zsh/zshrc
+  if [ -n "$TMUX" ]; then
+    tmux source-file ~/.config/tmux/tmux.conf && echo "reloaded zsh + tmux"
+  else
+    echo "reloaded zsh"
+  fi
+}
 
 alias arcc-local="$HOME/workplace/ArccApp/src/ARCCCliCore/build/arcc-cli/arcc"
