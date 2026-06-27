@@ -36,7 +36,16 @@ function M.lock(buf)
   vim.bo[buf].modified = false
 end
 
---- Install the universal quit keys (q / Esc close the whole popup).
+--- Install the universal quit keys (q / Esc close the whole popup) and
+--- neutralize the vim-tmux-navigator keys for this buffer.
+---
+--- Why neutralize: the viewer is a single read-only window inside a `tmux
+--- popup`. vim-tmux-navigator maps <C-h/j/k/l> globally to "move a vim split,
+--- else hand off to the surrounding tmux pane". In the popup there is only one
+--- window, so the split move always fails and it falls through to the tmux
+--- hand-off — but a popup has no $TMUX_PANE, so it runs `select-pane -t '' -<dir>`
+--- against the underlying session: a no-op at best, focus-disturbing at worst.
+--- There is nothing to navigate to in here, so we make these keys do nothing.
 ---@param buf integer
 function M.setup_quit_keys(buf)
   local opts = { buffer = buf, silent = true, nowait = true }
@@ -45,6 +54,10 @@ function M.setup_quit_keys(buf)
   end
   vim.keymap.set("n", "q", quit, opts)
   vim.keymap.set("n", "<Esc>", quit, opts)
+
+  for _, key in ipairs({ "<C-h>", "<C-j>", "<C-k>", "<C-l>", "<C-\\>" }) do
+    vim.keymap.set("n", key, "<Nop>", opts)
+  end
 end
 
 --- Pin a context line at the top of the window (stays visible while scrolling).
