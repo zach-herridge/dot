@@ -17,6 +17,13 @@ return {
       },
     },
     keymaps = {
+      -- Oil's defaults bind <C-h> (open in horizontal split) and <C-l>
+      -- (refresh) buffer-locally, which shadow vim-tmux-navigator's global
+      -- <C-h>/<C-l> pane-navigation maps inside oil buffers. Disable them so
+      -- navigation stays seamless; oil keeps <C-s>/<C-t> for split/tab open
+      -- and refresh is still available via the picker / reopening.
+      ["<C-h>"] = false,
+      ["<C-l>"] = false,
       -- Send file under cursor (or visual selection) to local ~/Downloads
       ["gt"] = {
         callback = function()
