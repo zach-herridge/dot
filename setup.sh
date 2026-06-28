@@ -28,7 +28,11 @@ brew install stow
 
 if [ ! -d ~/dot ]; then
     echo "Cloning dotfiles repo..."
-    git clone git@github.com:zach-herridge/dot.git ~/dot
+    # https (not git@) so the clone works on a fresh machine with no SSH key set
+    # up yet — which is the whole point of a bootstrap script. Switch the remote
+    # to SSH afterwards for key-based pushes.
+    git clone https://github.com/zach-herridge/dot.git ~/dot
+    git -C ~/dot remote set-url origin git@github.com:zach-herridge/dot.git
 fi
 
 # --- Remove legacy asdf if present ---
@@ -73,7 +77,9 @@ if [[ "$OS" == "Darwin" ]]; then
     brew install "${MACOS_PKGS[@]}"
 fi
 
-brew install --HEAD neovim
+# Stable neovim for reproducibility. (Was --HEAD; switch back only if a config
+# feature needs an unreleased nightly.)
+brew install neovim
 
 # --- Set up mise runtimes (Node LTS, etc.) ---
 echo "Installing runtimes via mise..."

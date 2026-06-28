@@ -570,15 +570,9 @@ async function buildRecursive(ws: Workspace, options: BuildOptions): Promise<voi
 // ── Summary ────────────────────────────────────────────────────────────────
 
 function printSummary(results: BuildResult[], totalMs: number): void {
-  if (results.length <= 1) {
-    // Single package: result already printed inline
-    if (results.length === 1 && !results[0].ok) {
-      // failure output already shown
-    } else if (results.length === 1 && results[0].ok) {
-      // success already shown
-    }
-    return;
-  }
+  // Single package: its pass/fail output was already printed inline, so there's
+  // no aggregate summary to show.
+  if (results.length <= 1) return;
 
   const passed = results.filter((r) => r.ok).length;
   const failed = results.filter((r) => !r.ok).length;

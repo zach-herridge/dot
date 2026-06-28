@@ -1,7 +1,10 @@
 return {
   'saghen/blink.cmp',
-  lazy = false,
-  version = 'v0.*',
+  -- Completion is only needed once you start editing, so load on first insert
+  -- rather than at startup. (blink also attaches via LSP, so cmdline/term aren't
+  -- affected.) Bumped off the stale v0.* pin to the current v1 line.
+  event = 'InsertEnter',
+  version = '1.*',
   opts = {
     keymap = {
       ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },

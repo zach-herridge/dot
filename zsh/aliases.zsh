@@ -1,6 +1,6 @@
 alias v="nvim"
 alias bb="brazil-build"
-alias bbb="brazil-recursive-cmd brazil-build release --allpackages"
+alias bbb="brazil-recursive-cmd -allPackages brazil-build release"
 alias gt="lazygit"
 alias ci="zi"
 alias c="clear"

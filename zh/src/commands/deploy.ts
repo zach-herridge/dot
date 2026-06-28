@@ -191,7 +191,8 @@ export function registerDeployCommand(program: Command): void {
         const stg = getStage(stageName);
         if (stg) {
           console.log();
-          console.log(c.dim(`  tail logs:   zh logs ${stg.logGroup}`));
+          // `zh logs` doesn't exist — point at the real AWS CLI command instead.
+          console.log(c.dim(`  tail logs:   aws logs tail ${stg.logGroup} --follow`));
           console.log(c.dim(`  run integ:   zhi test`));
         }
       }

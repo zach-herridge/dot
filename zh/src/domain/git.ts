@@ -24,10 +24,17 @@ export interface RebaseResult {
   conflict: boolean;
 }
 
-/** Get porcelain status + current branch */
+/**
+ * Get porcelain status + current branch.
+ *
+ * NOTE: this intentionally does NOT swallow a failing `git status` into an
+ * empty result. A non-zero exit (not a git repo, corrupt index, etc.) means
+ * "clean" would be a LIE — and callers like commitAll() use dirtiness to gate
+ * destructive actions. Let the error propagate so the caller decides.
+ */
 export async function status(cwd: string): Promise<RepoStatus> {
   const [statusOut, branch] = await Promise.all([
-    $`git -C ${cwd} status --porcelain`.text().catch(() => ''),
+    $`git -C ${cwd} status --porcelain`.text(),
     currentBranch(cwd),
   ]);
 
@@ -150,9 +157,15 @@ export async function aheadBehind(
   };
 }
 
-/** Check if working tree is clean */
+/**
+ * Check if the working tree is clean.
+ *
+ * Does NOT swallow git errors into a false "clean" — a failed `git status`
+ * throws so callers don't skip a commit (or take a destructive shortcut) on the
+ * mistaken belief that there's nothing to do.
+ */
 export async function isClean(cwd: string): Promise<boolean> {
-  const out = await $`git -C ${cwd} status --porcelain`.text().catch(() => '');
+  const out = await $`git -C ${cwd} status --porcelain`.text();
   return out.trim().length === 0;
 }
 

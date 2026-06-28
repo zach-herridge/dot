@@ -4,14 +4,9 @@ return {
     { "<leader>u", "<cmd>UndotreeToggle<cr>", desc = "Toggle Undo Tree" },
   },
   config = function()
-    -- Enable persistent undo
-    vim.opt.undofile = true
-    vim.opt.undodir = vim.fn.stdpath("data") .. "/undo"
-
-    -- Create undo directory if it doesn't exist
-    vim.fn.mkdir(vim.fn.stdpath("data") .. "/undo", "p")
-
-    -- Configure undotree
+    -- Persistent-undo (undofile/undodir) lives in core/options.lua so it's set
+    -- at startup regardless of when this lazy plugin loads. Only undotree's own
+    -- display options belong here.
     vim.g.undotree_WindowLayout = 2 -- Layout with diff window
     vim.g.undotree_SplitWidth = 30
     vim.g.undotree_DiffpanelHeight = 10

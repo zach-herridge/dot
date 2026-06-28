@@ -52,14 +52,17 @@ recv() {
     kitten transfer --direction=receive "$@"
 }
 
-# Tmux scrollback to nvim (no history)
-tmux-scrollback() {
-    nvim =(tmux capture-pane -pS -)
-}
-# Edit tmux scrollback in nvim
+# Open the full tmux scrollback in nvim. `command nvim` bypasses the nvim()
+# wrapper above (we don't want its /tmp/nvim_cd_target cd side-effect here).
+# Pass -t to start at the top, or default to the bottom (latest output).
 scrollback() {
-    nvim -c 'normal! G' =(tmux capture-pane -pS -)
+    if [[ "$1" == "-t" ]]; then
+        command nvim =(tmux capture-pane -pS -)
+    else
+        command nvim -c 'normal! G' =(tmux capture-pane -pS -)
+    fi
 }
+alias tmux-scrollback='scrollback -t'
 
 
 

@@ -62,6 +62,7 @@ _zh_completion() {
     'build:Build packages (smart defaults)'
     'test:Run unit tests'
     'deploy:Deploy CDK stacks'
+    'cr:Code review status / watch'
     'help:Show help'
   )
 
@@ -78,7 +79,15 @@ _zh_completion() {
     fi
   else
     case "${words[2]}" in
-      prune|prep|clean)
+      prune)
+        _arguments \
+          '--dry-run[Show what would be deleted, then stop]' \
+          '-n[Show what would be deleted, then stop]' \
+          '--yes[Skip the confirmation prompt]' \
+          '-y[Skip the confirmation prompt]' \
+          '--user[Remote branch owner]:user:'
+        ;;
+      prep|clean)
         _arguments \
           '--dry-run[Show what would be done]' \
           '-n[Show what would be done]'
@@ -137,11 +146,12 @@ _zh_completion() {
           '--redo[Repeat last deployment]' \
           '--diff[Show CDK diff before deploying]' \
           '--hotswap[Lambda-only hotswap deploy]' \
-          '--full[Full recursive build first]' \
-          '--no-build[Skip all builds]' \
           '--history[Show deployment log]' \
           '--override[Override stage guardrails]' \
           '1:stack:(service foundational toolbox service@devo service@beta service@gamma found@devo found@beta svc fr)'
+        ;;
+      cr)
+        _arguments '1:subcommand:(status watch)'
         ;;
       each)
         shift words

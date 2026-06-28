@@ -279,7 +279,6 @@ function M.update(status_data, unstaged_only)
             line_num = line_num + 1
           end
         end
-      else
       end
 
       -- Add spacing between repos if multiple

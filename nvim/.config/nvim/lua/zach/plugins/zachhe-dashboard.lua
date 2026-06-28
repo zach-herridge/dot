@@ -1,3 +1,7 @@
+-- Single refresh timer shared across reloads, so re-sourcing this spec doesn't
+-- stack up multiple 60s timers.
+local refresh_timer
+
 return {
   "folke/snacks.nvim",
   opts = function(_, opts)
@@ -61,12 +65,8 @@ return {
           elseif char == "+" then hl_group = "AstroMediumStar"
           elseif char == "o" then hl_group = "AstroDimStar"
           elseif char == "." then hl_group = "AstroFaintStar"
-          else
-            -- Debug: color any unmatched character as red to see what we're missing
-            if char ~= " " and char ~= "\n" then
-              hl_group = "AstroMars" -- Temporary debug coloring
-            end
           end
+          -- Any other character (planet labels, spaces) renders with no highlight.
 
           if hl_group then
             table.insert(text_parts, { char, hl = hl_group })
@@ -94,22 +94,34 @@ return {
 
     opts.dashboard = {
       sections = {
-        {
-          text = get_skyview(),
-          align = "center"
-        },
+        -- A section given as a FUNCTION is only invoked when the dashboard
+        -- renders (snacks resolve() calls it lazily), so the 80x30 sky isn't
+        -- computed on every startup — only when a dashboard is actually shown.
+        function()
+          return { text = get_skyview(), align = "center" }
+        end,
       }
     }
 
-    -- Set up timer to update dashboard every minute
-    local timer = vim.uv.new_timer()
-    timer:start(60000, 60000, vim.schedule_wrap(function()
-      -- Only update if dashboard is visible
-      local buf = vim.api.nvim_get_current_buf()
-      if vim.bo[buf].filetype == "snacks_dashboard" then
-        require("snacks").dashboard.update()
-      end
-    end))
+    -- Refresh the sky once a minute WHILE a dashboard is open. The previous
+    -- version leaked a timer that ran forever (never stored, never stopped); it
+    -- also fired every 60s for the entire nvim session even with no dashboard.
+    -- Track it on a module-local and only run it while a dashboard buffer exists.
+    if not refresh_timer then
+      refresh_timer = vim.uv.new_timer()
+      refresh_timer:start(60000, 60000, vim.schedule_wrap(function()
+        local has_dashboard = false
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype == "snacks_dashboard" then
+            has_dashboard = true
+            break
+          end
+        end
+        if has_dashboard then
+          require("snacks").dashboard.update()
+        end
+      end))
+    end
 
     return opts
   end,

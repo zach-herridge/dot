@@ -1,3 +1,3 @@
 --target=$HOME
 --ignore=.stowrc
---ignore=DS_Store
+--ignore=\.DS_Store

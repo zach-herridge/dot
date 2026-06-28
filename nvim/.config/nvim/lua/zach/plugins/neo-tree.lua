@@ -1,6 +1,13 @@
 return {
   "nvim-neo-tree/neo-tree.nvim",
   branch = "v3.x",
+  -- Lazy-load on demand: oil.nvim is the default explorer, neo-tree is only
+  -- reached via <leader>oN or :Neotree, so there's no reason to load it (and its
+  -- plenary/nui/devicons deps) at startup.
+  cmd = "Neotree",
+  keys = {
+    { "<leader>oN", "<cmd>Neotree filesystem reveal left<cr>", desc = "Reveal in Neo-tree" },
+  },
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-tree/nvim-web-devicons",
@@ -210,7 +217,7 @@ return {
         }
       }
     })
-
-    vim.keymap.set('n', '<leader>oN', ':Neotree filesystem reveal left<CR>', {})
+    -- <leader>oN is declared as a lazy `keys` entry above so it works before
+    -- the plugin loads; no need to re-map it here.
   end,
 }

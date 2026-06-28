@@ -16,9 +16,14 @@ opt.sidescrolloff = 9
 
 opt.smoothscroll = true
 
--- undo
+-- undo (persistent). Kept here (next to undofile) rather than split into
+-- undotree.lua, so it's set unconditionally at startup and isn't dependent on
+-- when the lazy-loaded undotree plugin happens to run its config.
 opt.undofile = true
 opt.undolevels = 10000
+local undodir = vim.fn.stdpath("data") .. "/undo"
+opt.undodir = undodir
+vim.fn.mkdir(undodir, "p")
 
 -- tabs & indentation
 opt.tabstop = 2
