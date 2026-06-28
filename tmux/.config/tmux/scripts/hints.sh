@@ -6,6 +6,8 @@
 #   hints.sh hash   — pick a git hash, copy to clipboard
 #   hints.sh url    — pick a URL, open in browser
 #   hints.sh line   — pick a line, copy to clipboard
+#   hints.sh ip     — pick an IPv4 address or AWS ARN, copy to clipboard
+#   hints.sh word   — prompt for a regex, pick a match, copy to clipboard
 
 HINT_TYPE="${1:-path}"
 
@@ -124,6 +126,48 @@ case "$HINT_TYPE" in
         if [[ -n "$SELECTED" ]]; then
             echo -n "$SELECTED" | copy_to_clipboard
             tmux display-message "Copied to clipboard"
+        fi
+        ;;
+
+    ip)
+        # Extract IPv4 addresses and AWS ARNs — high-value tokens for the
+        # AWS/remote workload (copy an instance IP, a resource ARN, etc.).
+        MATCHES=$(echo "$CONTENT" \
+            | grep -oE 'arn:[a-z0-9-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:[a-zA-Z0-9/:._*-]+|\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
+            | grep -vE '^0\.0\.0\.0$' \
+            | awk '!seen[$0]++' \
+        ) || true
+
+        if [[ -z "$MATCHES" ]]; then
+            echo "No IPs or ARNs found"
+            exit 0
+        fi
+        SELECTED=$(echo "$MATCHES" | fzf --prompt="Copy IP/ARN: " --layout=reverse) || true
+        if [[ -n "$SELECTED" ]]; then
+            echo -n "$SELECTED" | copy_to_clipboard
+            tmux display-message "Copied: $SELECTED"
+        fi
+        ;;
+
+    word)
+        # Regex mode: prompt for an extended-regexp, extract every match from the
+        # pane, dedup, and copy the chosen one. A general escape hatch for tokens
+        # the dedicated modes don't cover.
+        printf 'Regex (ERE): ' >&2
+        read -r PATTERN
+        if [[ -z "$PATTERN" ]]; then
+            echo "No pattern given"
+            exit 0
+        fi
+        MATCHES=$(echo "$CONTENT" | grep -oE "$PATTERN" 2>/dev/null | awk '!seen[$0]++') || true
+        if [[ -z "$MATCHES" ]]; then
+            echo "No matches for: $PATTERN"
+            exit 0
+        fi
+        SELECTED=$(echo "$MATCHES" | fzf --prompt="Copy match: " --layout=reverse) || true
+        if [[ -n "$SELECTED" ]]; then
+            echo -n "$SELECTED" | copy_to_clipboard
+            tmux display-message "Copied: $SELECTED"
         fi
         ;;
 
