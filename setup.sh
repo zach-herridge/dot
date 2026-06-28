@@ -103,9 +103,12 @@ git config --global push.autoSetupRemote true
 echo "Importing shell history into atuin..."
 atuin import auto 2>/dev/null || true
 
-if [ ! -d ~/.tmux/plugins/tpm ]; then
+# Install TPM into the SAME path tmux.conf pins (TMUX_PLUGIN_MANAGER_PATH) and
+# runs it from. Keeping the manager and its managed plugins in one place is what
+# stops vim-tmux-navigator/tmux-yank from silently going missing.
+if [ ! -d ~/.config/tmux/plugins/tpm ]; then
     echo "Installing tmux plugin manager..."
-    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+    git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
 fi
 
 # Actually install the plugins TPM manages (@plugin lines in tmux.conf).
@@ -113,7 +116,7 @@ fi
 # Must match TMUX_PLUGIN_MANAGER_PATH pinned in tmux.conf.
 echo "Installing tmux plugins via TPM..."
 TMUX_PLUGIN_MANAGER_PATH="$HOME/.config/tmux/plugins/" \
-    ~/.tmux/plugins/tpm/bin/install_plugins 2>/dev/null || true
+    ~/.config/tmux/plugins/tpm/bin/install_plugins 2>/dev/null || true
 
 if [ ! -d ~/.config/tmux/plugins/catppuccin ]; then
     echo "Installing catppuccin tmux theme..."

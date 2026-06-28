@@ -4,7 +4,9 @@
 autoload -Uz compinit
 compinit -C -d "${HOME}/.zcompdump"
 
-# Rebuild dump in background if it's stale (>24h old)
+# Rebuild dump in background if it's stale (>24h old). The (#qN.mh+24) glob
+# qualifier forces filename generation even inside [[ -n ... ]], so this is
+# empty (false) when the dump is fresh and non-empty (true) when it's >24h old.
 if [[ -n ${HOME}/.zcompdump(#qN.mh+24) ]]; then
   { compinit -d "${HOME}/.zcompdump" } &!
 fi

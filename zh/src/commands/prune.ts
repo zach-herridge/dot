@@ -1,107 +1,164 @@
 import type { Command } from 'commander';
 import { Workspace } from '../domain/workspace.js';
 import { parallel } from '../lib/runner.js';
-import * as git from '../domain/git.js';
-import { c, header, table, empty } from '../lib/ui.js';
+import { c, header, confirm } from '../lib/ui.js';
 import { $ } from 'bun';
+
+/** A branch slated for deletion, with the repo it lives in. */
+interface PrunePlanItem {
+  pkgName: string;
+  pkgPath: string;
+  scope: 'local' | 'remote';
+  branch: string;
+}
+
+/**
+ * Resolve the default remote-branch owner. Brazil/Amazon remote branches are
+ * namespaced as `<user>/<branch>`, so we need the current user's login. Prefer
+ * git's configured user, fall back to $USER — never a hardcoded name.
+ */
+async function defaultUser(): Promise<string> {
+  const fromGit = await $`git config user.name`.text().catch(() => '');
+  const trimmed = fromGit.trim();
+  if (trimmed) return trimmed;
+  return process.env.USER ?? '';
+}
 
 /**
  * zh prune -- delete old local and remote branches across all repos.
+ *
+ * Remote deletion is destructive and irreversible (it runs `git push --delete`),
+ * so the flow is: compute a read-only plan across every repo, show it, and
+ * require explicit confirmation before deleting anything. `--dry-run` stops
+ * after printing the plan.
  */
 export function registerPruneCommand(program: Command): void {
   program
     .command('prune')
     .description('Delete old local and remote branches (yours)')
-    .option('-n, --dry-run', 'Show what would be deleted')
-    .option('--user <username>', 'Remote branch owner', 'zachhe')
-    .action(async (options: { dryRun?: boolean; user: string }) => {
+    .option('-n, --dry-run', 'Show what would be deleted, then stop')
+    .option('-y, --yes', 'Skip the confirmation prompt (dangerous)')
+    .option('--user <username>', 'Remote branch owner (default: git user / $USER)')
+    .action(async (options: { dryRun?: boolean; yes?: boolean; user?: string }) => {
       const ws = Workspace.discover();
       if (!ws) {
         console.error(c.err('No workspace found'));
         process.exit(1);
       }
 
+      const user = options.user ?? (await defaultUser());
+      if (!user) {
+        console.error(
+          c.err('Could not determine remote branch owner; pass --user <username>'),
+        );
+        process.exit(1);
+      }
+
       const packages = await ws.packages();
-      header(`Pruning branches across ${packages.length} repos...`);
+      header(`Scanning ${packages.length} repos for prunable branches (owner: ${user})...`);
       console.log();
 
-      let totalLocal = 0;
-      let totalRemote = 0;
+      // ── Phase 1: build the plan (READ-ONLY — no deletions yet) ──────────────
+      const scanned = await parallel(packages, async (pkg) => {
+        const items: PrunePlanItem[] = [];
 
-      const results = await parallel(packages, async (pkg) => {
-        const deletedLocal: string[] = [];
-        const deletedRemote: string[] = [];
-
-        // Get current branch to avoid deleting it
+        // Local branches (not mainline, not the currently checked-out one).
         const current = await pkg.currentBranch();
-
-        // Local branches (not mainline, not current)
-        const localBranches = await pkg.branches();
-        for (const b of localBranches) {
+        for (const b of await pkg.branches()) {
           if (b.name === 'mainline' || b.name === current) continue;
-
-          if (options.dryRun) {
-            deletedLocal.push(b.name);
-          } else {
-            try {
-              await $`git -C ${pkg.path} branch -D ${b.name}`.quiet();
-              deletedLocal.push(b.name);
-            } catch {
-              // skip
-            }
-          }
+          items.push({ pkgName: pkg.name, pkgPath: pkg.path, scope: 'local', branch: b.name });
         }
 
-        // Fetch --prune to clean up stale remote refs
+        // Prune stale remote-tracking refs, then list remote branches OWNED by
+        // the user. Match the `origin/<user>/...` owner prefix specifically, so
+        // a branch that merely contains the name as a substring isn't caught.
         await $`git -C ${pkg.path} fetch --prune origin`.quiet().catch(() => {});
-
-        // Remote branches owned by user
         const remoteRefs = await $`git -C ${pkg.path} for-each-ref --format=${'%(refname:short)'} refs/remotes/origin`
           .text()
           .catch(() => '');
-
-        const userBranches = remoteRefs
-          .trim()
-          .split('\n')
-          .filter((b) => b.includes(`/${options.user}/`));
-
-        for (const ref of userBranches) {
-          const remoteBranch = ref.replace('origin/', '');
-          if (options.dryRun) {
-            deletedRemote.push(remoteBranch);
-          } else {
-            try {
-              await $`git -C ${pkg.path} push origin --delete ${remoteBranch}`.quiet();
-              deletedRemote.push(remoteBranch);
-            } catch {
-              // skip
-            }
+        for (const ref of remoteRefs.trim().split('\n').filter(Boolean)) {
+          const branch = ref.replace(/^origin\//, '');
+          if (branch.startsWith(`${user}/`)) {
+            items.push({ pkgName: pkg.name, pkgPath: pkg.path, scope: 'remote', branch });
           }
         }
 
-        return { deletedLocal, deletedRemote };
+        return items;
       });
 
-      // Print results
-      for (const r of results) {
-        if (r.error) continue;
-        const { deletedLocal, deletedRemote } = r.result!;
-        if (deletedLocal.length === 0 && deletedRemote.length === 0) continue;
+      const plan = scanned.flatMap((r) => r.result ?? []);
+      const localItems = plan.filter((i) => i.scope === 'local');
+      const remoteItems = plan.filter((i) => i.scope === 'remote');
 
-        console.log(`${c.pkg(r.pkg.name)}`);
-        for (const b of deletedLocal) {
-          const prefix = options.dryRun ? 'would delete' : 'deleted';
-          console.log(`  ${c.dim('local:')}  ${b}`);
-          totalLocal++;
+      if (plan.length === 0) {
+        console.log(c.dim('Nothing to prune.'));
+        return;
+      }
+
+      // ── Show the plan ───────────────────────────────────────────────────────
+      let lastPkg = '';
+      for (const item of plan) {
+        if (item.pkgName !== lastPkg) {
+          console.log(c.pkg(item.pkgName));
+          lastPkg = item.pkgName;
         }
-        for (const b of deletedRemote) {
-          console.log(`  ${c.dim('remote:')} ${b}`);
-          totalRemote++;
+        const tag = item.scope === 'remote' ? c.warn('remote:') : c.dim('local: ');
+        console.log(`  ${tag} ${item.branch}`);
+      }
+      console.log();
+      console.log(
+        `${c.bold(`${localItems.length}`)} local, ` +
+          `${c.bold(`${remoteItems.length}`)} remote branch(es) across ${
+            new Set(plan.map((i) => i.pkgName)).size
+          } repo(s)`,
+      );
+
+      if (options.dryRun) {
+        console.log(c.dim('\nDry run — nothing deleted.'));
+        return;
+      }
+
+      // ── Phase 2: confirm, then delete ─────────────────────────────────────────
+      if (!options.yes) {
+        console.log();
+        const warning =
+          remoteItems.length > 0
+            ? c.err(`This will DELETE ${remoteItems.length} REMOTE branch(es) (irreversible).`)
+            : c.warn('This will delete the local branches listed above.');
+        console.log(warning);
+        const ok = await confirm('Proceed?', false); // default NO for a destructive op
+        if (!ok) {
+          console.log(c.dim('Aborted.'));
+          return;
+        }
+      }
+
+      let deletedLocal = 0;
+      let deletedRemote = 0;
+      const failures: string[] = [];
+
+      for (const item of localItems) {
+        try {
+          await $`git -C ${item.pkgPath} branch -D ${item.branch}`.quiet();
+          deletedLocal++;
+        } catch {
+          failures.push(`${item.pkgName} local:${item.branch}`);
+        }
+      }
+      for (const item of remoteItems) {
+        try {
+          await $`git -C ${item.pkgPath} push origin --delete ${item.branch}`.quiet();
+          deletedRemote++;
+        } catch {
+          failures.push(`${item.pkgName} remote:${item.branch}`);
         }
       }
 
       console.log();
-      const verb = options.dryRun ? 'Would delete' : 'Deleted';
-      console.log(`${verb} ${totalLocal} local, ${totalRemote} remote branches`);
+      console.log(c.ok(`Deleted ${deletedLocal} local, ${deletedRemote} remote branches`));
+      if (failures.length > 0) {
+        console.log(c.err(`Failed to delete ${failures.length}:`));
+        for (const f of failures) console.log(`  ${f}`);
+      }
     });
 }

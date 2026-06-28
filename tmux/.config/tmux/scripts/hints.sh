@@ -68,9 +68,13 @@ case "$HINT_TYPE" in
             elif [[ "$SELECTED" != /* ]]; then
                 SELECTED="$PANE_CWD/$SELECTED"
             fi
-            # Open in the user's pane (send command to it)
+            # Open in a NEW window rather than send-keys into the origin pane.
+            # send-keys assumes a shell prompt is waiting — if the pane is running
+            # Claude, a REPL, htop, or nvim it would type "nvim <path>" as garbage
+            # input or run a stray command. A new window is context-independent and
+            # leaves the original pane untouched.
             printf -v ESCAPED_PATH '%q' "$SELECTED"
-            tmux send-keys -t "$PANE_ID" "nvim $ESCAPED_PATH" Enter
+            tmux new-window -c "$PANE_CWD" "nvim $ESCAPED_PATH"
         fi
         ;;
 

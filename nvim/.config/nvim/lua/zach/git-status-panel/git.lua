@@ -80,8 +80,48 @@ function M.get_status_for_repos(repos, callback)
   end
 end
 
+-- Parse `git status --porcelain=v1 -z` output. Records are NUL-terminated as
+-- "XY<space>path". Rename/copy records (X = 'R'/'C') are followed by an extra
+-- NUL-separated field holding the OLD path, which we consume and discard. Using
+-- -z (rather than splitting lines + line:sub(4)) means paths with spaces, quotes
+-- or unicode arrive verbatim and renames don't leak an "old -> new" string into
+-- the filename — both of which broke every downstream stage/revert/diff/open.
+---@param stdout string  raw `git status --porcelain=v1 -z` output
+---@param repo_path string
+---@return table[] files
+function M.parse_porcelain_z(stdout, repo_path)
+  local fields = vim.split(stdout, "\0", { plain = true })
+  local files = {}
+  local i = 1
+  while i <= #fields do
+    local record = fields[i]
+    if record == nil or #record < 4 then
+      i = i + 1
+    else
+      local status = record:sub(1, 2)
+      local file = record:sub(4)
+      -- Rename/copy: the old path is the next NUL-separated field — skip it.
+      if status:sub(1, 1) == "R" or status:sub(1, 1) == "C" then
+        i = i + 1
+      end
+      if file ~= "" and file:match("%S") and not file:match("/$") then
+        table.insert(files, {
+          status = status,
+          file = file,
+          full_path = repo_path .. "/" .. file,
+        })
+      end
+      i = i + 1
+    end
+  end
+  table.sort(files, function(a, b) return a.file < b.file end)
+  return files
+end
+
 function M.get_changed_files(repo_path, callback)
-  local cmd = { "git", "status", "--porcelain", "-u" } -- -u shows individual untracked files
+  -- -z: NUL-separated, unquoted paths (safe for spaces/unicode/renames).
+  -- -u: list individual untracked files. -c core.quotepath=false belt-and-braces.
+  local cmd = { "git", "-c", "core.quotepath=false", "status", "--porcelain=v1", "-z", "-u" }
   local branch_cmd = { "git", "branch", "--show-current" }
   local upstream_cmd = { "git", "rev-list", "--left-right", "--count", "HEAD...@{upstream}" }
   
@@ -104,28 +144,10 @@ function M.get_changed_files(repo_path, callback)
       -- Then get file status
       vim.system(cmd, { cwd = repo_path }, function(result)
         local files = {}
-        
         if result.code == 0 and result.stdout then
-          for line in result.stdout:gmatch("[^\r\n]+") do
-            if line and #line >= 4 then -- Ensure line has at least status + space + filename
-              local status = line:sub(1, 2)
-              local file = line:sub(4)
-              
-              -- Skip empty filenames and directories (ending with /)
-              if file and file:match("%S") and not file:match("/$") then
-                table.insert(files, {
-                  status = status,
-                  file = file,
-                  full_path = repo_path .. "/" .. file,
-                })
-              end
-            end
-          end
+          files = M.parse_porcelain_z(result.stdout, repo_path)
         end
-        
-        -- Sort files by path for stable order
-        table.sort(files, function(a, b) return a.file < b.file end)
-        
+
         vim.schedule(function()
           callback(files, branch, ahead, behind)
         end)

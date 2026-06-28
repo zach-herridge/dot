@@ -18,9 +18,15 @@ local function get_julian_date()
 end
 
 local function radec_to_altaz(ra, dec, lat, lon, jd)
-  local gmst = (jd - 2451545.0) / 36525 * 360.25 * math.pi / 180
+  -- Greenwich Mean Sidereal Time. Standard linear approximation (IAU 1982),
+  -- in DEGREES, normalized to [0,360). The previous code used a crude
+  -- (T)*360.25 formula AND left gmst in radians while adding `lon` in degrees
+  -- (a ~57x unit mismatch), so star positions were physically wrong.
+  local gmst_deg = (280.46061837 + 360.98564736629 * (jd - 2451545.0)) % 360
+  if gmst_deg < 0 then gmst_deg = gmst_deg + 360 end
 
-  local lst = gmst + lon
+  -- Local Sidereal Time, then hour angle — all in radians.
+  local lst = deg_to_rad(gmst_deg) + deg_to_rad(lon)
   local ha = lst - deg_to_rad(ra)
 
   if ha < 0 then ha = ha + 2 * math.pi end
