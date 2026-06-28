@@ -151,7 +151,7 @@ _zh_completion() {
           '1:stack:(service foundational toolbox service@devo service@beta service@gamma found@devo found@beta svc fr)'
         ;;
       cr)
-        _arguments '1:subcommand:(status watch)'
+        _arguments '1:subcommand:(status watch fix)'
         ;;
       each)
         shift words
