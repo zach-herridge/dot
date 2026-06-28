@@ -42,15 +42,18 @@ if [ -d "$HOME/.asdf" ]; then
     rm -f "$HOME/.tool-versions"
 fi
 
+# The package lists (stow packages + brew formulae) live in one manifest so
+# setup.sh, uninstall.sh, and `dot doctor` can't drift. Available now that the
+# repo is cloned.
+source ~/dot/lib/packages.sh
+
 # Stow config packages (creates ~/.config/<name>/ symlinks)
 # --adopt: pull any existing files into the package, then git restores ours
 echo "Stowing config packages..."
 cd ~/dot
 
-STOW_PKGS=(atuin btop mise nvim ripgrep starship tmux)
-if [[ "$OS" == "Darwin" ]]; then
-    STOW_PKGS+=(kitty)
-fi
+# Read into arrays portably (macOS ships bash 3.2 — no mapfile).
+STOW_PKGS=(); while IFS= read -r p; do STOW_PKGS+=("$p"); done < <(dot_stow_pkgs)
 
 stow --adopt "${STOW_PKGS[@]}"
 # Restore repo versions (only for tracked files — new packages skip gracefully)
@@ -60,26 +63,8 @@ done
 
 # --- Install tools (cross-platform) ---
 echo "Installing tools via Homebrew..."
-COMMON_PKGS=(
-    git zoxide fd wget tmux dua-cli btop lazygit
-    fzf fzf-tab ripgrep starship eza bat atuin
-    zsh-autosuggestions zsh-syntax-highlighting
-    imagemagick mise oven-sh/bun/bun
-)
-
-# macOS-only GUI apps + Nerd Font (provides the icon glyphs kitty's symbol_map
-# falls back to — without it the tmux/starship statusline shows "_ _" tofu).
-MACOS_PKGS=(ghostty kitty astroterm font-symbols-only-nerd-font)
-
-brew install "${COMMON_PKGS[@]}"
-
-if [[ "$OS" == "Darwin" ]]; then
-    brew install "${MACOS_PKGS[@]}"
-fi
-
-# Stable neovim for reproducibility. (Was --HEAD; switch back only if a config
-# feature needs an unreleased nightly.)
-brew install neovim
+BREW_PKGS=(); while IFS= read -r p; do BREW_PKGS+=("$p"); done < <(dot_brew_pkgs)
+brew install "${BREW_PKGS[@]}"
 
 # --- Set up mise runtimes (Node LTS, etc.) ---
 echo "Installing runtimes via mise..."

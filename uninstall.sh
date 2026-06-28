@@ -1,21 +1,16 @@
 #!/bin/bash
 set -e
 
-# Mirror of setup.sh's install steps, in reverse. Keep the STOW_PKGS list and the
-# shell-symlink set IN SYNC with setup.sh — if they drift, teardown silently
-# leaves files behind (the previous version unstowed a package named "." that
-# matched nothing, and removed a ~/.tmux.conf that setup never creates).
+# Mirror of setup.sh's install steps, in reverse. The stow-package list comes
+# from the shared manifest (lib/packages.sh) so this can't drift from setup.sh.
 
-OS="$(uname -s)"
+source ~/dot/lib/packages.sh
 
 echo "Starting dotfiles uninstallation..."
 
 # --- Unstow the same packages setup.sh stowed ---
 echo "Unstowing config packages..."
-STOW_PKGS=(atuin btop mise nvim ripgrep starship tmux)
-if [[ "$OS" == "Darwin" ]]; then
-    STOW_PKGS+=(kitty)
-fi
+STOW_PKGS=(); while IFS= read -r p; do STOW_PKGS+=("$p"); done < <(dot_stow_pkgs)
 cd ~/dot && stow -D "${STOW_PKGS[@]}" 2>/dev/null || true
 
 # --- Remove the shell symlinks setup.sh created ---

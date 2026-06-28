@@ -15,7 +15,15 @@ cd ~/dot
 `setup.sh` is cross-platform: it detects macOS (Apple Silicon / Intel) or Linux
 (linuxbrew), installs tools via Homebrew, stows the config packages, links the
 shell files, and installs tmux/Neovim plugins. On older Linux hosts it pins a
-glibc-compatible Node via `mise`.
+glibc-compatible Node via `mise`. The stow-package and brew-formula lists live
+in one manifest (`lib/packages.sh`) shared by `setup.sh`, `uninstall.sh`, and
+`dot doctor`, so they can't drift.
+
+After setup (or any time something feels off), run **`dot doctor`** for a
+health check: required binaries, config symlinks pointing into `~/dot`, tmux
+being the brew build (not stale system tmux), a UTF-8 locale, and tmux plugins
+present. It codifies the fixes documented in
+`docs/remote-terminal-troubleshooting.md`.
 
 ### Shell (Zsh)
 - **Starship prompt** - Fast, customizable prompt with git integration

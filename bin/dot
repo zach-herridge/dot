@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+# dot — maintenance CLI for this dotfiles repo.
+#
+#   dot doctor   Health-check the environment: required binaries, that config
+#                symlinks point into ~/dot, tmux is the brew build (not stale
+#                system tmux), UTF-8 locale, and tmux plugins are present.
+#   dot help     Show this help.
+#
+# `doctor` codifies the hard-won knowledge from docs/remote-terminal-
+# troubleshooting.md so a broken setup is diagnosed in one command instead of
+# rediscovered each time.
+
+set -uo pipefail
+
+DOT_ROOT="${DOT_ROOT:-$HOME/dot}"
+
+# ── output helpers ────────────────────────────────────────────────────────────
+if [[ -t 1 ]]; then
+    GREEN=$'\033[32m'; RED=$'\033[31m'; YELLOW=$'\033[33m'; DIM=$'\033[2m'; BOLD=$'\033[1m'; RESET=$'\033[0m'
+else
+    GREEN=""; RED=""; YELLOW=""; DIM=""; BOLD=""; RESET=""
+fi
+
+PASS_COUNT=0
+WARN_COUNT=0
+FAIL_COUNT=0
+
+pass() { printf '  %s✓%s %s\n' "$GREEN" "$RESET" "$1"; PASS_COUNT=$((PASS_COUNT + 1)); }
+warn() { printf '  %s!%s %s%s%s\n' "$YELLOW" "$RESET" "$1" "${2:+  $DIM}" "${2:-}${2:+$RESET}"; WARN_COUNT=$((WARN_COUNT + 1)); }
+fail() { printf '  %s✗%s %s%s%s\n' "$RED" "$RESET" "$1" "${2:+  $DIM}" "${2:-}${2:+$RESET}"; FAIL_COUNT=$((FAIL_COUNT + 1)); }
+section() { printf '\n%s%s%s\n' "$BOLD" "$1" "$RESET"; }
+
+# ── checks ────────────────────────────────────────────────────────────────────
+
+check_binaries() {
+    section "Required binaries"
+    # shellcheck source=/dev/null
+    if [[ -f "$DOT_ROOT/lib/packages.sh" ]]; then
+        source "$DOT_ROOT/lib/packages.sh"
+    else
+        fail "manifest missing" "$DOT_ROOT/lib/packages.sh not found"
+        return
+    fi
+    for bin in "${DOT_REQUIRED_BINS[@]}"; do
+        if command -v "$bin" >/dev/null 2>&1; then
+            pass "$bin  $(command -v "$bin")"
+        else
+            fail "$bin not found" "install via setup.sh / brew"
+        fi
+    done
+}
+
+check_symlinks() {
+    section "Config symlinks point into ~/dot"
+    # Each entry: "label:link_path"
+    local links=(
+        "zshrc:$HOME/.zshrc"
+        "zshenv:$HOME/.zshenv"
+        "nvim:$HOME/.config/nvim"
+        "tmux:$HOME/.config/tmux"
+        "starship:$HOME/.config/starship"
+    )
+    for entry in "${links[@]}"; do
+        local label="${entry%%:*}" path="${entry#*:}"
+        if [[ ! -e "$path" && ! -L "$path" ]]; then
+            warn "$label not linked" "$path missing"
+        elif [[ -L "$path" ]]; then
+            local target; target="$(readlink "$path")"
+            case "$target" in
+                *"/dot/"*|*"/dot") pass "$label -> $target" ;;
+                *) fail "$label points outside ~/dot" "$target" ;;
+            esac
+        else
+            warn "$label is a real file, not a symlink" "$path"
+        fi
+    done
+}
+
+check_tmux() {
+    section "tmux (brew build, not stale system tmux)"
+    if ! command -v tmux >/dev/null 2>&1; then
+        fail "tmux not found"
+        return
+    fi
+    local tmux_path; tmux_path="$(command -v tmux)"
+    case "$tmux_path" in
+        */homebrew/*|*/linuxbrew/*|*/usr/local/*)
+            pass "tmux is the brew build" "$tmux_path"
+            ;;
+        /usr/bin/tmux)
+            fail "tmux resolves to system tmux" "$tmux_path — see docs/remote-terminal-troubleshooting.md"
+            ;;
+        *)
+            warn "tmux at an unexpected path" "$tmux_path"
+            ;;
+    esac
+    printf '  %s%s%s\n' "$DIM" "  version: $(tmux -V 2>/dev/null)" "$RESET"
+
+    # If a server is running, check the attached client's UTF-8 mode. A non-UTF-8
+    # client renders Nerd Font glyphs as "_" tofu (the classic remote symptom).
+    if tmux info >/dev/null 2>&1; then
+        local utf8; utf8="$(tmux display-message -p '#{client_utf8}' 2>/dev/null)"
+        if [[ "$utf8" == "1" ]]; then
+            pass "tmux client is in UTF-8 mode (client_utf8=1)"
+        elif [[ -n "$utf8" ]]; then
+            fail "tmux client is NOT UTF-8 (client_utf8=$utf8)" "launch with 'tmux -u' / check LANG"
+        fi
+    fi
+}
+
+check_locale() {
+    section "Locale (UTF-8 for glyphs over SSH)"
+    local lang="${LC_ALL:-${LANG:-}}"
+    case "$lang" in
+        *UTF-8|*utf8|*UTF8) pass "UTF-8 locale" "$lang" ;;
+        "") fail "no LANG/LC_ALL set" "zshenv should export en_US.UTF-8 / C.UTF-8" ;;
+        *) warn "locale is not UTF-8" "$lang" ;;
+    esac
+}
+
+check_tmux_plugins() {
+    section "tmux plugins (pinned path)"
+    local base="$HOME/.config/tmux/plugins"
+    for plugin in tpm catppuccin vim-tmux-navigator tmux-yank; do
+        if [[ -d "$base/$plugin" ]]; then
+            pass "$plugin"
+        else
+            warn "$plugin missing" "run setup.sh or prefix+I in tmux"
+        fi
+    done
+    # The split that previously broke plugins: a second TPM under ~/.tmux.
+    if [[ -d "$HOME/.tmux/plugins" ]]; then
+        warn "legacy ~/.tmux/plugins exists" "should be removed — plugins live in ~/.config/tmux/plugins"
+    fi
+}
+
+check_zh() {
+    section "zh CLI"
+    if command -v zh >/dev/null 2>&1; then
+        pass "zh on PATH" "$(command -v zh)"
+    else
+        warn "zh not on PATH" "expected ~/dot/zh/bin on PATH"
+    fi
+    if [[ -d "$DOT_ROOT/zh/node_modules" ]]; then
+        pass "zh dependencies installed"
+    else
+        warn "zh node_modules missing" "run: (cd ~/dot/zh && bun install)"
+    fi
+}
+
+doctor() {
+    printf '%sdot doctor%s  %s(%s)%s\n' "$BOLD" "$RESET" "$DIM" "$DOT_ROOT" "$RESET"
+    check_binaries
+    check_symlinks
+    check_tmux
+    check_locale
+    check_tmux_plugins
+    check_zh
+
+    section "Summary"
+    printf '  %s%d passed%s' "$GREEN" "$PASS_COUNT" "$RESET"
+    [[ $WARN_COUNT -gt 0 ]] && printf ', %s%d warning(s)%s' "$YELLOW" "$WARN_COUNT" "$RESET"
+    [[ $FAIL_COUNT -gt 0 ]] && printf ', %s%d failed%s' "$RED" "$FAIL_COUNT" "$RESET"
+    printf '\n'
+    [[ $FAIL_COUNT -gt 0 ]] && return 1
+    return 0
+}
+
+usage() {
+    cat <<'EOF'
+dot — dotfiles maintenance CLI
+
+Usage:
+  dot doctor    Health-check the environment (binaries, symlinks, tmux, locale)
+  dot help      Show this help
+EOF
+}
+
+case "${1:-help}" in
+    doctor) doctor ;;
+    help|-h|--help) usage ;;
+    *) printf 'dot: unknown command "%s"\n\n' "$1" >&2; usage; exit 1 ;;
+esac
