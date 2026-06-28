@@ -61,14 +61,15 @@ function M.get_status_for_repos(repos, callback)
   for _, repo in ipairs(repos) do
     local repo_name = vim.fn.fnamemodify(repo, ":t")
     
-    M.get_changed_files(repo, function(files, branch, ahead, behind)
+    M.get_changed_files(repo, function(files, branch, ahead, behind, has_upstream)
       -- Always include the repository, even if it has no changes
       status_data[repo_name] = {
         path = repo,
         files = files,
         branch = branch,
         ahead = ahead,
-        behind = behind
+        behind = behind,
+        has_upstream = has_upstream
       }
       
       pending = pending - 1
@@ -132,10 +133,14 @@ function M.get_changed_files(repo_path, callback)
       branch = branch_result.stdout:gsub("\n", "")
     end
     
-    -- Get upstream comparison
+    -- Get upstream comparison. A non-zero exit means there's NO upstream
+    -- configured for this branch (vs. exit 0 with 0/0 = in sync). Surfacing the
+    -- difference lets the panel show "no upstream" instead of a misleading blank,
+    -- and lets push know it needs `-u` to set the upstream on first push.
     vim.system(upstream_cmd, { cwd = repo_path }, function(upstream_result)
       local ahead, behind = 0, 0
-      if upstream_result.code == 0 and upstream_result.stdout then
+      local has_upstream = upstream_result.code == 0
+      if has_upstream and upstream_result.stdout then
         local counts = upstream_result.stdout:gsub("\n", "")
         ahead, behind = counts:match("(%d+)%s+(%d+)")
         ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
@@ -149,7 +154,7 @@ function M.get_changed_files(repo_path, callback)
         end
 
         vim.schedule(function()
-          callback(files, branch, ahead, behind)
+          callback(files, branch, ahead, behind, has_upstream)
         end)
       end)
     end)

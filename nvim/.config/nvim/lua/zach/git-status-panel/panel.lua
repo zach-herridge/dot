@@ -194,6 +194,9 @@ function M.setup_keymaps()
   -- Commit staged changes
   vim.keymap.set("n", "c", M.commit_staged, opts)
 
+  -- Push repos that are ahead of (or have no) upstream
+  vim.keymap.set("n", "P", M.push_all, opts)
+
   -- Refresh
   vim.keymap.set("n", "R", function()
     require("zach.git-status-panel").refresh()
@@ -234,7 +237,11 @@ function M.update(status_data, unstaged_only)
       local header = repo_name
       if repo_data.branch then
         header = header .. " (" .. repo_data.branch
-        if repo_data.ahead and repo_data.behind and (repo_data.ahead > 0 or repo_data.behind > 0) then
+        if repo_data.has_upstream == false then
+          -- Distinguish "no upstream configured" from "in sync" — otherwise a
+          -- branch that's never been pushed looks identical to one that's even.
+          header = header .. " ⚐"
+        elseif repo_data.ahead and repo_data.behind and (repo_data.ahead > 0 or repo_data.behind > 0) then
           local upstream_info = ""
           if repo_data.ahead > 0 then
             upstream_info = upstream_info .. "↑" .. repo_data.ahead
@@ -941,6 +948,82 @@ function M.commit_staged()
       end)
     end)
   end
+end
+
+--- Push every repo that has commits to push: either ahead of its upstream, or
+--- on a branch with no upstream yet (first push). Mirrors commit_staged's
+--- async-fan-out + single-refresh pattern. Branches with no upstream are pushed
+--- with `-u` so the upstream is set.
+function M.push_all()
+  local git_module = require("zach.git-status-panel.git")
+  local repos = git_module.find_repos()
+  if #repos == 0 then
+    vim.notify("No repositories found", vim.log.levels.WARN)
+    return
+  end
+
+  git_module.get_status_for_repos(repos, function(status_data)
+    -- Collect repos with something to push.
+    local to_push = {} -- { path, name, branch, set_upstream }
+    for name, data in pairs(status_data) do
+      local no_upstream = data.has_upstream == false
+      local ahead = (data.ahead or 0) > 0
+      if no_upstream or ahead then
+        table.insert(to_push, {
+          path = data.path,
+          name = name,
+          branch = data.branch,
+          set_upstream = no_upstream,
+        })
+      end
+    end
+
+    if #to_push == 0 then
+      vim.notify("Nothing to push (all repos in sync)", vim.log.levels.INFO)
+      return
+    end
+
+    -- Confirm, listing exactly what will be pushed and where.
+    local summary = {}
+    for _, r in ipairs(to_push) do
+      table.insert(summary, ("  %s (%s)%s"):format(r.name, r.branch or "?", r.set_upstream and " [new upstream]" or ""))
+    end
+    local prompt = ("Push %d repo(s)?\n%s"):format(#to_push, table.concat(summary, "\n"))
+    local choice = vim.fn.confirm(prompt, "&Yes\n&No", 2)
+    if choice ~= 1 then
+      return
+    end
+
+    local pending = #to_push
+    local success_count = 0
+    local error_repos = {}
+    for _, r in ipairs(to_push) do
+      local cmd = { "git", "push" }
+      if r.set_upstream and r.branch and r.branch ~= "" and r.branch ~= "unknown" then
+        vim.list_extend(cmd, { "-u", "origin", r.branch })
+      end
+      vim.system(cmd, { cwd = r.path }, function(result)
+        vim.schedule(function()
+          if result.code == 0 then
+            success_count = success_count + 1
+          else
+            local msg = (result.stderr or ""):gsub("%s+$", "")
+            table.insert(error_repos, r.name .. (msg ~= "" and (": " .. msg) or ""))
+          end
+          pending = pending - 1
+          if pending == 0 then
+            if success_count > 0 then
+              vim.notify(("Pushed %d repository(ies)"):format(success_count), vim.log.levels.INFO)
+            end
+            if #error_repos > 0 then
+              vim.notify("Failed to push:\n" .. table.concat(error_repos, "\n"), vim.log.levels.ERROR)
+            end
+            require("zach.git-status-panel").refresh()
+          end
+        end)
+      end)
+    end
+  end)
 end
 
 return M
