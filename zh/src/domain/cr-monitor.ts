@@ -1,7 +1,4 @@
 import { c } from '../lib/ui.js';
-import * as cache from '../lib/cache.js';
-
-const LAST_CR_KEY = 'last-cr';
 
 /**
  * Monitor CR analyzer status by polling the revision JSON endpoint.
@@ -55,12 +52,26 @@ export interface CrRevisionResponse {
   };
 }
 
+/** Structured finding from AutoSDE for programmatic consumption. */
+export interface AutoSdeCrFinding {
+  file: string;
+  line: number;
+  content: string;
+  author: string;
+  fixed: boolean;
+}
+
 export interface MonitorOptions {
   plain?: boolean;
+  /** If true, print AutoSDE findings when monitoring finishes with issues. */
+  showFindings?: boolean;
 }
 
 function isTerminal(status: AnalyzerStatus): boolean {
-  return status === 'Pass' || status === 'Fail';
+  // 'Fault' is a terminal infra/config error (e.g. missing destination branch,
+  // DRB couldn't start, an analyzer couldn't fetch results). It never resolves
+  // on its own, so it must count as terminal or watch polls until timeout.
+  return status === 'Pass' || status === 'Fail' || status === 'Fault';
 }
 
 /** AutoSDE reports "Pass" even with comments. We treat comments as a failure. */
@@ -111,26 +122,35 @@ function statusColor(status: AnalyzerStatus, text: string): string {
   }
 }
 
-/** Save last CR ID to cache (called by prep after CR creation). */
-export function saveLastCr(crId: string): void {
-  cache.set(LAST_CR_KEY, crId);
-}
-
-/** Get last CR ID from cache. */
-export function getLastCr(): string | undefined {
-  return cache.get<string>(LAST_CR_KEY);
-}
-
 /** Fetch full CR revision data. Exported for use by `zh cr` command. */
-export async function fetchCr(crId: string, revision = 1): Promise<CrRevisionResponse | null> {
-  return fetchCrRevision(crId, revision);
+export async function fetchCr(crId: string, revision?: number): Promise<CrRevisionResponse | null> {
+  const rev = revision ?? (await detectLatestRevision(crId));
+  return fetchCrRevision(crId, rev);
+}
+
+/** Detect the latest revision by trying sequential revision numbers. */
+async function detectLatestRevision(crId: string): Promise<number> {
+  // Start at 1 and increment until we get a 404 / empty response.
+  // Most CRs have <15 revisions so this is fast.
+  let latest = 1;
+  for (let rev = 2; rev <= 30; rev++) {
+    const data = await fetchCrRevision(crId, rev);
+    if (!data || !data.revision) break;
+    latest = rev;
+  }
+  return latest;
+}
+
+/** Get the latest revision number without fetching full data. */
+export async function getLatestRevision(crId: string): Promise<number> {
+  return detectLatestRevision(crId);
 }
 
 async function fetchCrRevision(crId: string, revision = 1): Promise<CrRevisionResponse | null> {
   const url = `https://code.amazon.com/reviews/${crId}/revisions/${revision}.json`;
   try {
     const proc = Bun.spawn(
-      ['curl', '-s', '-L', '-b', `${process.env.HOME}/.midway/cookie`, url],
+      ['mcscli', 'curl', '-s', '-L', url],
       { stdout: 'pipe', stderr: 'pipe' },
     );
     const output = await new Response(proc.stdout).text();
@@ -140,6 +160,80 @@ async function fetchCrRevision(crId: string, revision = 1): Promise<CrRevisionRe
   } catch {
     return null;
   }
+}
+
+/**
+ * Extract AutoSDE findings from a CR revision response.
+ * Returns structured findings for programmatic consumption.
+ */
+export function extractAutoSdeFindings(data: CrRevisionResponse): AutoSdeCrFinding[] {
+  const comments = data.revision?.cr_revision?.comments;
+  if (!comments || comments.length === 0) return [];
+
+  const findings: AutoSdeCrFinding[] = [];
+  for (const comment of comments) {
+    const cm = comment.cr_comment;
+    if (!cm) continue;
+
+    // Only AutoSDE comments
+    const author = cm.author?.entity_id?.id ?? '';
+    if (!author.toLowerCase().includes('autosde') && author !== 'AutoSDE') continue;
+
+    // Location format: "v4:PackageName:path/to/file::lineStart::lineEnd:"
+    // or "TOP" for top-level comments
+    const loc = cm.location?.comment_location?.location ?? '';
+    const { file, line } = parseCommentLocation(loc);
+
+    // Strip metadata prefix lines (e.g., "[//]: # (rule_id=...)")
+    const rawContent = cm.content ?? '';
+    const content = rawContent
+      .split('\n')
+      .filter((l) => !l.startsWith('[//]: #'))
+      .join('\n')
+      .trim();
+
+    findings.push({
+      file,
+      line,
+      content,
+      author,
+      fixed: cm.fixed ?? false,
+    });
+  }
+
+  return findings;
+}
+
+/**
+ * Parse CRUX comment location format.
+ * Format: "v4:PackageName:path/to/file::lineStart::lineEnd:"
+ * The path comes between "v4:PkgName:" and the first "::" double-colon.
+ */
+export function parseLocation(loc: string): { file: string; line: number } {
+  return parseCommentLocation(loc);
+}
+
+function parseCommentLocation(loc: string): { file: string; line: number } {
+  if (!loc || loc === 'TOP') return { file: '', line: 0 };
+
+  // Split on first double-colon to separate path from line numbers
+  const doubleColonIdx = loc.indexOf('::');
+  if (doubleColonIdx === -1) return { file: loc, line: 0 };
+
+  const pathPart = loc.slice(0, doubleColonIdx);
+  const linePart = loc.slice(doubleColonIdx + 2);
+
+  // Path format: "v4:PackageName:rest/of/path"
+  // Strip the "v4:PackageName:" prefix to get relative file path
+  const colonParts = pathPart.split(':');
+  // colonParts = ["v4", "PackageName", "path/to/file"]
+  const file = colonParts.length >= 3 ? colonParts.slice(2).join(':') : pathPart;
+
+  // Line part: "lineStart::lineEnd:" — take first number
+  const lineStr = linePart.split('::')[0] ?? '0';
+  const line = parseInt(lineStr, 10) || 0;
+
+  return { file, line };
 }
 
 function renderStatus(analyzers: Map<string, AnalyzerInfo>, elapsed: number): void {
@@ -184,26 +278,33 @@ function renderStatusPlain(analyzers: Map<string, AnalyzerInfo>, elapsed: number
 
 export async function monitorCr(crId: string, options?: MonitorOptions): Promise<void> {
   const plain = options?.plain ?? false;
+  const showFindings = options?.showFindings ?? true;
+
+  // Detect the latest revision ONCE up front \u2014 watch should monitor the
+  // revision that was just uploaded, not always revision 1.
+  const revision = await detectLatestRevision(crId);
 
   if (!plain) {
-    console.log(`  ${c.dim('Monitoring CR analyzers...')}`);
+    console.log(`  ${c.dim(`Monitoring CR analyzers (revision ${revision})...`)}`);
     for (const name of MONITORED_ANALYZERS) {
       console.log(`  ${c.dim('\u25cb')} ${c.dim(name)}  ${c.dim('waiting...')}`);
     }
   } else {
-    console.log(`Monitoring ${crId} analyzers...`);
+    console.log(`Monitoring ${crId} revision ${revision} analyzers...`);
   }
 
   const start = Date.now();
+  let lastData: CrRevisionResponse | null = null;
 
   while (Date.now() - start < TIMEOUT_MS) {
     await sleep(POLL_INTERVAL_MS);
 
-    const data = await fetchCrRevision(crId);
+    const data = await fetchCrRevision(crId, revision);
     if (!data?.analyzers) {
       if (plain) console.log(`  [${Math.floor((Date.now() - start) / 1000)}s] fetch failed, retrying...`);
       continue;
     }
+    lastData = data;
 
     // Build status map for monitored analyzers
     const statusMap = new Map<string, AnalyzerInfo>();
@@ -221,6 +322,33 @@ export async function monitorCr(crId: string, options?: MonitorOptions): Promise
       renderStatus(statusMap, elapsed);
     }
 
+    // Stop early if any analyzer faulted (infra/config error, never self-resolves).
+    // Reported distinctly from Fail so the cause (e.g. missing destination branch)
+    // is obvious rather than looking like a code finding.
+    const faulted = MONITORED_ANALYZERS.filter((name) => {
+      const info = statusMap.get(name);
+      return info && info.status === 'Fault';
+    });
+
+    if (faulted.length > 0) {
+      const detail = faulted
+        .map((name) => {
+          const msg = statusMap.get(name)?.status_message;
+          return msg ? `${name}: ${msg}` : name;
+        })
+        .join('; ');
+      if (plain) {
+        console.log(`Done: analyzer FAULTED (${Math.floor(elapsed / 1000)}s) — ${detail}`);
+        console.log('This is a config/infra error, not a code finding. Common cause: missing destination branch (git branch --set-upstream-to=origin/mainline, then re-run cr).');
+      } else {
+        console.log();
+        console.log(`  ${c.err('Analyzer faulted')} ${c.dim(`(${Math.floor(elapsed / 1000)}s)`)}`);
+        console.log(`  ${c.dim(detail)}`);
+        console.log(`  ${c.dim('Config/infra error, not a code finding. Common cause: missing destination branch.')}`);
+      }
+      return;
+    }
+
     // Stop early if any analyzer failed
     const anyFailed = MONITORED_ANALYZERS.some((name) => {
       const info = statusMap.get(name);
@@ -233,6 +361,15 @@ export async function monitorCr(crId: string, options?: MonitorOptions): Promise
       } else {
         console.log();
         console.log(`  ${c.warn('Analyzers finished with issues')} ${c.dim(`(${Math.floor(elapsed / 1000)}s)`)}`);
+      }
+
+      // Print findings inline when done
+      if (showFindings && lastData) {
+        const findings = extractAutoSdeFindings(lastData);
+        if (findings.length > 0) {
+          console.log();
+          printAutoSdeFindings(findings, { plain });
+        }
       }
       return;
     }
@@ -261,6 +398,41 @@ export async function monitorCr(crId: string, options?: MonitorOptions): Promise
   } else {
     console.log();
     console.log(`  ${c.warn('Timed out waiting for analyzers')} ${c.dim(`(${elapsed}s)`)}`);
+  }
+}
+
+/**
+ * Print AutoSDE findings in a readable format.
+ */
+export function printAutoSdeFindings(findings: AutoSdeCrFinding[], opts?: { plain?: boolean }): void {
+  const active = findings.filter((f) => !f.fixed);
+  const fixed = findings.filter((f) => f.fixed);
+
+  if (active.length === 0) {
+    console.log(opts?.plain
+      ? 'AutoSDE: 0 active findings'
+      : `  ${c.ok('AutoSDE: 0 active findings')}${fixed.length > 0 ? c.dim(` (${fixed.length} resolved)`) : ''}`);
+    return;
+  }
+
+  console.log(opts?.plain
+    ? `AutoSDE: ${active.length} active finding(s)${fixed.length > 0 ? ` (${fixed.length} resolved)` : ''}`
+    : `  ${c.err(`AutoSDE: ${active.length} active finding(s)`)}${fixed.length > 0 ? c.dim(` (${fixed.length} resolved)`) : ''}`);
+  console.log();
+
+  for (const f of active) {
+    const loc = `${f.file}${f.line ? `:${f.line}` : ''}`;
+    // Skip metadata lines (start with "[//]: #") to get the actual content
+    const contentLines = f.content.split('\n');
+    const meaningful = contentLines.find((l) => !l.startsWith('[//]: #') && l.trim().length > 0) ?? contentLines[0];
+    const summary = meaningful.slice(0, 120);
+    if (opts?.plain) {
+      console.log(`  ${loc}`);
+      console.log(`    ${summary}`);
+    } else {
+      console.log(`  ${c.warn('W')} ${c.dim(loc)}`);
+      console.log(`    ${summary}`);
+    }
   }
 }
 

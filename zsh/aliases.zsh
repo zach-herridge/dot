@@ -39,3 +39,16 @@ reload() {
 }
 
 alias arcc-local="$HOME/workplace/ArccApp/src/ARCCCliCore/build/arcc-cli/arcc"
+
+# Kill stuck Microsoft SSO Extension windows (grey unresponsive dialogs)
+kill-sso() {
+  local pids
+  pids=$(pgrep -f "Mac SSO Extension" 2>/dev/null)
+  if [[ -n "$pids" ]]; then
+    echo "$pids" | while read -r pid; do
+      kill "$pid" && echo "killed Mac SSO Extension (PID $pid)"
+    done
+  else
+    echo "no Mac SSO Extension processes found"
+  fi
+}
